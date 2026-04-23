@@ -22,6 +22,7 @@ export async function getOrSeedCategories() {
     }
 
     // 2. If empty, maybe we are Admin and need to see Drafts or Seed
+    const adminEmails = ['logique900@gmail.com', 'admin@j-jbeauty.tn'];
     if (auth.currentUser) {
       try {
         const snapAdmin = await getDocs(query(categoriesRef, orderBy('position', 'asc')));
@@ -30,7 +31,7 @@ export async function getOrSeedCategories() {
         }
 
         // 3. Still empty? Try Seeding if Admin email
-        if (auth.currentUser.email === 'logique900@gmail.com') {
+        if (adminEmails.includes(auth.currentUser.email || '')) {
           console.log("Admin detected: Seeding categories...");
           const batch = writeBatch(db);
           for (let i = 0; i < mockCategories.length; i++) {
@@ -79,7 +80,7 @@ export async function getOrSeedProducts() {
           return snapAdmin.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         }
 
-        if (auth.currentUser.email === 'logique900@gmail.com') {
+        if (adminEmails.includes(auth.currentUser.email || '')) {
           console.log("Admin detected: Seeding products...");
           const batch = writeBatch(db);
           for (const prod of mockProducts) {
@@ -142,7 +143,7 @@ export async function getOrSeedBrands() {
           return snapAdmin.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         }
 
-        if (auth.currentUser.email === 'logique900@gmail.com') {
+        if (adminEmails.includes(auth.currentUser.email || '')) {
           console.log("Admin detected: Seeding brands...");
           const batch = writeBatch(db);
           for (const brand of mockBrands) {

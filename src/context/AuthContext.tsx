@@ -40,8 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const userData = userDoc.exists() ? userDoc.data() : {};
           const name = userData.name ? userData.name : firebaseUser.displayName || 'Utilisateur';
           
-          // Force admin role for the bootstrap email, or use stored role
-          const role = firebaseUser.email === 'logique900@gmail.com' ? 'admin' : (userData.role || 'user');
+          // Force admin role for the authorized administrator emails, or use stored role
+          const adminEmails = ['logique900@gmail.com', 'admin@j-jbeauty.tn'];
+          const role = adminEmails.includes(firebaseUser.email || '') ? 'admin' : (userData.role || 'user');
           
           setUser({
             id: firebaseUser.uid,
@@ -55,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             id: firebaseUser.uid,
             name: firebaseUser.displayName || 'Utilisateur',
             email: firebaseUser.email || '',
-            role: firebaseUser.email === 'logique900@gmail.com' ? 'admin' : 'user'
+            role: adminEmails.includes(firebaseUser.email || '') ? 'admin' : 'user'
           });
         }
       } else {
