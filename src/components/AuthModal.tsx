@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Mail, Lock, User, Check, Facebook, Github, Fingerprint } from 'lucide-react';
+import { X, Mail, Lock, User, Check, Fingerprint } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { auth, db, handleFirestoreError } from '../lib/firebase';
 import { useBiometrics } from '../hooks/useBiometrics';
@@ -13,7 +13,6 @@ import {
   browserSessionPersistence,
   signInWithPopup,
   GoogleAuthProvider,
-  GithubAuthProvider,
   updateProfile
 } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
@@ -177,12 +176,12 @@ export function AuthModal() {
     }
   };
 
-  const handleSocialLogin = async (providerName: 'google' | 'github') => {
+  const handleSocialLogin = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
     try {
-      const provider = providerName === 'google' ? new GoogleAuthProvider() : new GithubAuthProvider();
-      if (providerName === 'google') provider.addScope('email');
+      const provider = new GoogleAuthProvider();
+      provider.addScope('email');
       const result = await signInWithPopup(auth, provider);
       
       const userDocRef = doc(db, 'users', result.user.uid);
@@ -232,27 +231,15 @@ export function AuthModal() {
   }, [isAuthModalOpen, checkSupport]);
 
   const socialButtons = (
-    <div className="grid grid-cols-2 gap-3 mb-6">
-      <button onClick={() => handleSocialLogin('google')} className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition font-medium text-sm">
+    <div className="space-y-3 mb-6">
+      <button onClick={() => handleSocialLogin()} className="w-full flex items-center justify-center gap-3 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition font-bold text-sm">
         <svg className="w-5 h-5 text-[#4285F4]" fill="currentColor" viewBox="0 0 24 24"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></svg>
-        Google
-      </button>
-      <button className="flex items-center justify-center gap-2 py-2.5 bg-black text-white rounded-xl hover:bg-gray-800 transition font-medium text-sm">
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/></svg>
-        Apple
-      </button>
-      <button className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl hover:bg-[#1877F2] hover:text-white hover:border-[#1877F2] transition font-medium text-sm">
-        <Facebook className="w-5 h-5" />
-        Facebook
-      </button>
-      <button onClick={() => handleSocialLogin('github')} className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-100 transition font-medium text-sm">
-        <Github className="w-5 h-5" />
-        GitHub
+        Continuer avec Google
       </button>
       {isSupported && (
         <button 
           onClick={handleBiometricLogin}
-          className="col-span-2 flex items-center justify-center gap-2 py-2.5 bg-brand-50 text-brand-700 border border-brand-100 rounded-xl hover:bg-brand-100 transition font-bold text-sm"
+          className="w-full flex items-center justify-center gap-3 py-3 bg-brand-50 text-brand-700 border border-brand-100 rounded-xl hover:bg-brand-100 transition font-bold text-sm"
         >
           <Fingerprint className="w-5 h-5" />
           Se connecter avec la biométrie
