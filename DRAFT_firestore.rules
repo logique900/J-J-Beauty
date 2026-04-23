@@ -1,0 +1,288 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ----------------------------------------------------------------------
+    // GLOBAL PRIMITIVES
+    // ----------------------------------------------------------------------
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    
+    // Admins logic
+    // Using exists() to check if the user is in the "users" collection with role == 'admin'
+    // To prevent an extra read cost if we can, we often use exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+    // Let's create an "admins" collection for tier.
+    function isAdmin() {
+      // In this app, checking inside users collection.
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ----------------------------------------------------------------------
+    // VALIDATION HELPERS - BLUEPRINTS
+    // ----------------------------------------------------------------------
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'name', 'role', 'createdAt']) &&
+        data.email is string && data.email.size() <= 256 &&
+        data.name is string && data.name.size() <= 128 &&
+        data.role is string && (data.role == 'user' || data.role == 'admin') &&
+        data.createdAt == request.time &&
+        (
+          !('updatedAt' in data) || data.updatedAt == request.time
+        ) &&
+        (
+          !('phone' in data) || (data.phone is string && data.phone.size() <= 32)
+        ) &&
+        (
+          !('loyaltyPoints' in data) || data.loyaltyPoints is number
+        ) &&
+        (
+          !('totalSpent' in data) || data.totalSpent is number
+        ) &&
+        (
+          !('notes' in data) || (data.notes is string && data.notes.size() <= 1000)
+        );
+    }
+    
+    function isValidAddress(data) {
+      return data.keys().hasAll(['label', 'name', 'street', 'city', 'country', 'createdAt']) &&
+        data.label is string && data.label.size() <= 64 &&
+        data.name is string && data.name.size() <= 128 &&
+        data.street is string && data.street.size() <= 256 &&
+        data.city is string && data.city.size() <= 128 &&
+        data.country is string && data.country.size() <= 128 &&
+        data.createdAt == request.time &&
+        (
+          !('zip' in data) || (data.zip is string && data.zip.size() <= 32)
+        ) &&
+        (
+          !('phone' in data) || (data.phone is string && data.phone.size() <= 32)
+        ) &&
+        (
+          !('isDefault' in data) || data.isDefault is bool
+        );
+    }
+
+    function isValidProduct(data) {
+      return data.keys().hasAll(['name', 'slug', 'price', 'stock', 'status', 'createdAt', 'updatedAt']) &&
+        data.name is string && data.name.size() <= 256 &&
+        data.slug is string && data.slug.size() <= 128 &&
+        data.price is number && data.price >= 0 &&
+        data.stock is number && data.stock >= 0 &&
+        data.status is string && (data.status == 'draft' || data.status == 'active' || data.status == 'archived') &&
+        data.createdAt == request.time &&
+        data.updatedAt == request.time &&
+        (
+          !('category' in data) || (data.category is string && data.category.size() <= 128)
+        ) &&
+        (
+           !('description' in data) || (data.description is string && data.description.size() <= 10000)
+        ) &&
+        (
+           !('shortDescription' in data) || (data.shortDescription is string && data.shortDescription.size() <= 500)
+        ) &&
+        (
+           !('comparePrice' in data) || data.comparePrice is number
+        ) &&
+        (
+           !('cost' in data) || data.cost is number
+        ) &&
+        (
+           !('sku' in data) || (data.sku is string && data.sku.size() <= 64)
+        ) &&
+        (
+           !('alertThreshold' in data) || data.alertThreshold is number
+        ) &&
+        (
+           !('images' in data) || (data.images is list && data.images.size() <= 20)
+        ) &&
+        (
+           !('tags' in data) || (data.tags is list && data.tags.size() <= 20)
+        );
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll(['userId', 'customerEmail', 'status', 'totalAmount', 'createdAt', 'updatedAt']) &&
+        data.userId is string && data.userId.size() <= 128 &&
+        data.customerEmail is string && data.customerEmail.size() <= 256 &&
+        data.status is string && (data.status == 'pending' || data.status == 'confirmed' || data.status == 'processing' || data.status == 'shipped' || data.status == 'delivered' || data.status == 'refunded') &&
+        data.totalAmount is number && data.totalAmount >= 0 &&
+        data.createdAt == request.time &&
+        data.updatedAt == request.time &&
+        (
+          !('customerName' in data) || (data.customerName is string && data.customerName.size() <= 128)
+        ) &&
+        (
+          !('payment' in data) || (data.payment is string && data.payment.size() <= 64)
+        ) &&
+        (
+          !('shipping' in data) || (data.shipping is string && data.shipping.size() <= 128)
+        ) &&
+        (
+          !('trackingNumber' in data) || (data.trackingNumber is string && data.trackingNumber.size() <= 256)
+        ) &&
+        (
+          !('address' in data) || (data.address is string && data.address.size() <= 1000)
+        ) &&
+        (
+          !('items' in data) || (data.items is list && data.items.size() <= 100)
+        );
+    }
+    
+    function isValidCategory(data) {
+      return data.keys().hasAll(['name', 'slug', 'position', 'status', 'createdAt', 'updatedAt']) &&
+        data.name is string && data.name.size() <= 128 &&
+        data.slug is string && data.slug.size() <= 128 &&
+        data.position is number &&
+        data.status is string && (data.status == 'Actif' || data.status == 'Brouillon') &&
+        data.createdAt == request.time &&
+        data.updatedAt == request.time &&
+        (
+           !('description' in data) || (data.description is string && data.description.size() <= 1000)
+        );
+    }
+    
+    function isValidBrand(data) {
+      return data.keys().hasAll(['name', 'status', 'createdAt', 'updatedAt']) &&
+        data.name is string && data.name.size() <= 128 &&
+        data.status is string && (data.status == 'Actif' || data.status == 'Brouillon') &&
+        data.createdAt == request.time &&
+        data.updatedAt == request.time &&
+        (
+           !('website' in data) || (data.website is string && data.website.size() <= 256)
+        ) &&
+        (
+           !('description' in data) || (data.description is string && data.description.size() <= 1000)
+        );
+    }
+
+    // ----------------------------------------------------------------------
+    // COLLECTIONS
+    // ----------------------------------------------------------------------
+
+    match /users/{userId} {
+      // READ: Users can read their own profile. Admins can read all.
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      // Only explicit where-bound lists per owner allowed for non-admins to prevent full-scan scraping
+      allow list: if isAdmin() || (isOwner(userId) && userId == request.auth.uid);
+
+      // CREATE: Only verified users can register themselves as "user". Admins can create anything.
+      allow create: if isValidId(userId) && isOwner(userId) &&
+        isValidUser(incoming()) &&
+        // New users MUST have 'user' role unless an admin creates them
+        (incoming().role == 'user' || isAdmin());
+
+      // UPDATE: 
+      allow update: if isValidId(userId) && (
+        isAdmin() || (
+          isOwner(userId) &&
+          isValidUser(incoming()) &&
+          // User cannot change their role
+          incoming().role == existing().role &&
+          // User cannot change loyaltyPoints or totalSpent or notes
+          incoming().loyaltyPoints == existing().loyaltyPoints &&
+          incoming().totalSpent == existing().totalSpent &&
+          // User can only update name, phone, updatedAt
+          incoming().diff(existing()).affectedKeys().hasOnly(['name', 'phone', 'updatedAt'])
+        )
+      );
+      
+      allow delete: if isAdmin();
+      
+      // Subcollection: addresses
+      match /addresses/{addressId} {
+        allow get: if isValidId(userId) && isValidId(addressId) && (isOwner(userId) || isAdmin());
+        allow list: if isValidId(userId) && (isOwner(userId) || isAdmin()) && userId == request.auth.uid;
+        
+        allow create: if isValidId(userId) && isValidId(addressId) && (isOwner(userId) || isAdmin()) &&
+          isValidAddress(incoming());
+          
+        allow update: if isValidId(userId) && isValidId(addressId) && (isOwner(userId) || isAdmin()) &&
+          isValidAddress(incoming()) &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['label', 'name', 'street', 'city', 'country', 'zip', 'phone', 'isDefault', 'updatedAt']);
+          
+        allow delete: if isValidId(userId) && isValidId(addressId) && (isOwner(userId) || isAdmin());
+      }
+    }
+
+    // Products
+    match /products/{productId} {
+      // Anyone can read active products. Admins can read all.
+      allow get: if isValidId(productId) && (existing().status == 'active' || isAdmin());
+      allow list: if existing().status == 'active' || isAdmin();
+      
+      // Only admins can modify products
+      allow create: if isAdmin() && isValidId(productId) && isValidProduct(incoming());
+      allow update: if isAdmin() && isValidId(productId) && isValidProduct(incoming()) &&
+        incoming().createdAt == existing().createdAt;
+      allow delete: if isAdmin() && isValidId(productId);
+    }
+    
+    // Categories
+    match /categories/{categoryId} {
+      allow get: if isValidId(categoryId) && (existing().status == 'Actif' || isAdmin());
+      allow list: if existing().status == 'Actif' || isAdmin();
+      
+      allow create: if isAdmin() && isValidId(categoryId) && isValidCategory(incoming());
+      allow update: if isAdmin() && isValidId(categoryId) && isValidCategory(incoming()) &&
+        incoming().createdAt == existing().createdAt;
+      allow delete: if isAdmin() && isValidId(categoryId);
+    }
+    
+    // Brands
+    match /brands/{brandId} {
+      allow get: if isValidId(brandId) && (existing().status == 'Actif' || isAdmin());
+      allow list: if existing().status == 'Actif' || isAdmin();
+      
+      allow create: if isAdmin() && isValidId(brandId) && isValidBrand(incoming());
+      allow update: if isAdmin() && isValidId(brandId) && isValidBrand(incoming()) &&
+        incoming().createdAt == existing().createdAt;
+      allow delete: if isAdmin() && isValidId(brandId);
+    }
+
+    // Orders
+    match /orders/{orderId} {
+      // Customers can read their own orders. Admins can read all.
+      allow get: if isValidId(orderId) && (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
+      // Secure list query
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      
+      // Create: Users can create their own order, starting as pending.
+      allow create: if isValidId(orderId) && isSignedIn() &&
+        isValidOrder(incoming()) &&
+        incoming().userId == request.auth.uid &&
+        incoming().status == 'pending';
+        
+      // Update: Only admins can change status and details. Users CANNOT modify an order once placed.
+      // E.g. Users shouldn't be able to change amount or add status 'refunded'
+      allow update: if isValidId(orderId) && (
+        isAdmin() && 
+        isValidOrder(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt 
+      );
+      
+      // Only admin can delete
+      allow delete: if isAdmin() && isValidId(orderId);
+    }
+  }
+}
