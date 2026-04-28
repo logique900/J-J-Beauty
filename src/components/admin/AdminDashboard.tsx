@@ -20,6 +20,7 @@ import { AdminAnalytics } from './AdminAnalytics';
 import { AdminCategories } from './AdminCategories';
 import { AdminBrands } from './AdminBrands';
 import { AdminSettings } from './AdminSettings';
+import { AdminHero } from './AdminHero';
 import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -51,7 +52,7 @@ interface AdminDashboardProps {
   onBack: () => void;
 }
 
-type AdminTab = 'overview' | 'analytics' | 'orders' | 'customers' | 'products' | 'categories' | 'brands' | 'inventory' | 'settings';
+type AdminTab = 'overview' | 'analytics' | 'orders' | 'customers' | 'products' | 'categories' | 'brands' | 'inventory' | 'settings' | 'hero';
 
 export function AdminDashboard({ onBack }: AdminDashboardProps) {
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -64,6 +65,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [kpiStats, setKpiStats] = useState({ revenue: 0, ordersCount: 0, avgCart: 0 });
   const [dbLoading, setDbLoading] = useState(true);
+  const [adminAlerts, setAdminAlerts] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -86,6 +88,26 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
           date: new Date(o.createdAt?.toDate ? o.createdAt.toDate() : o.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
         }));
         setRecentOrders(mappedOrders.slice(0, 5)); // Keep only latest 5 for overview
+
+        // Create dynamic alerts from recent orders
+        const dynamicOrderAlerts = orders.slice(0, 3).map((o: any) => ({
+          id: `order-${o.id}`,
+          type: 'order',
+          message: `Nouvelle commande de ${(o.shippingAddress?.firstName || '')} ${o.shippingAddress?.lastName || 'Client'} (${o.totalAmount || 0} DT)`,
+          level: 'medium',
+          dateObj: o.createdAt?.toDate ? o.createdAt.toDate() : new Date()
+        }));
+
+        // Combine with some static mock alerts for UI fullness
+        const mixedAlerts = [
+          { id: 'stock-1', type: 'stock', message: 'Sérum Éclat Vitamine C - Stock critique (5 restants)', level: 'high', dateObj: new Date() },
+          ...dynamicOrderAlerts,
+          { id: 'traffic-1', type: 'traffic', message: 'Pic de trafic détecté (+45% de visiteurs)', level: 'info', dateObj: new Date(Date.now() - 3600000) }
+        ];
+        
+        // Sort alerts by date
+        mixedAlerts.sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
+        setAdminAlerts(mixedAlerts);
 
         // Simple aggregations for demo 
         const totalRev = orders.reduce((acc: number, cur: any) => acc + (cur.totalAmount || 0), 0);
@@ -178,6 +200,8 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
         return <AdminBrands />;
       case 'settings':
         return <AdminSettings />;
+      case 'hero':
+        return <AdminHero />;
       case 'overview':
       default:
         return (
@@ -297,7 +321,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                   </h3>
                 </div>
                 <div className="flex flex-col gap-4 flex-1">
-                  {ALERTS.map(alert => (
+                  {adminAlerts.map(alert => (
                     <div key={alert.id} className={`p-4 rounded-xl border flex items-start gap-3 transition-colors ${
                       alert.level === 'high' ? 'bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-900/30 text-red-800 dark:text-red-400' :
                       alert.level === 'medium' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-900/30 text-orange-800 dark:text-orange-400' :
@@ -372,6 +396,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
     { id: 'categories', label: 'Catégories', icon: LayoutDashboard },
     { id: 'brands', label: 'Marques', icon: Globe },
     { id: 'inventory', label: 'Inventaire', icon: Box },
+    { id: 'hero', label: 'Hero Section', icon: LayoutDashboard },
     { id: 'settings', label: 'Paramètres', icon: Settings },
   ];
 
@@ -529,8 +554,8 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                         <button className="text-xs font-medium text-brand-500 hover:text-brand-900 transition hover:underline">Tout marquer comme lu</button>
                       </div>
                       <div className="max-h-[60vh] overflow-y-auto divide-y divide-brand-50 custom-scrollbar">
-                        {ALERTS.map((alert, i) => (
-                          <div key={i} className="p-4 flex items-start gap-3 hover:bg-brand-50 transition cursor-pointer group">
+                        {adminAlerts.map((alert, i) => (
+                          <div key={alert.id} className="p-4 flex items-start gap-3 hover:bg-brand-50 transition cursor-pointer group">
                             <div className={`mt-0.5 shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${alert.level === 'high' ? 'bg-red-100 text-red-600' : alert.level === 'medium' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
                               {alert.level === 'high' ? <AlertTriangle className="w-4 h-4"/> : <Bell className="w-4 h-4"/>}
                             </div>

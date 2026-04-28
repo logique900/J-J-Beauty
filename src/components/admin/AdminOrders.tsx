@@ -6,6 +6,7 @@ import {
 import { db } from '../../lib/firebase';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
+import { toast } from '../../lib/toast';
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -40,10 +41,10 @@ export function AdminOrders() {
         trackingNumber: trackingInput,
         updatedAt: serverTimestamp()
       });
-      alert('Numéro de suivi enregistré !');
+      toast.success('Numéro de suivi enregistré !');
     } catch (err) {
       console.error(err);
-      alert('Erreur lors de l\'enregistrement.');
+      toast.error('Erreur lors de l\'enregistrement.');
     }
   };
 
@@ -53,9 +54,38 @@ export function AdminOrders() {
         status: newStatus,
         updatedAt: serverTimestamp()
       });
+
+      const orderToUpdate = orders.find(o => o.id === id) || selectedOrder;
+
+      if (orderToUpdate && orderToUpdate.email) {
+         if (newStatus === 'confirmed') {
+            fetch('/api/send-order-confirmation', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                customerEmail: orderToUpdate.email,
+                customerName: orderToUpdate.customer,
+                orderId: id,
+                totalAmount: orderToUpdate.amount
+              })
+            }).catch(e => console.error("Erreur email confirmation:", e));
+         } else if (newStatus === 'cancelled') {
+            fetch('/api/send-order-cancellation', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                customerEmail: orderToUpdate.email,
+                customerName: orderToUpdate.customer,
+                orderId: id
+              })
+            }).catch(e => console.error("Erreur email annulation:", e));
+         }
+      }
+
+      toast.success('Statut mis à jour et un email a été déclenché si nécessaire.');
     } catch (err) {
       console.error(err);
-      alert('Erreur lors du changement de statut.');
+      toast.error('Erreur lors du changement de statut.');
     }
   };
 
@@ -68,10 +98,10 @@ export function AdminOrders() {
         updatedAt: serverTimestamp()
       });
       setShowRefundModal(false);
-      alert('Remboursement effectué !');
+      toast.success('Remboursement effectué !');
     } catch (err) {
       console.error(err);
-      alert('Erreur.');
+      toast.error('Erreur.');
     }
   };
 
@@ -127,7 +157,7 @@ export function AdminOrders() {
   };
 
   const handleBulkPrint = () => {
-    alert(`Impression lancée pour ${selectedBulk.length} commandes.`);
+    toast.success(`Impression lancée pour ${selectedBulk.length} commandes.`);
     setSelectedBulk([]);
   };
 
@@ -154,7 +184,7 @@ export function AdminOrders() {
       await updateDoc(doc(db, 'orders', selectedOrder.id), { status: newStatus });
     } catch (err) {
       console.error(err);
-      alert('Erreur lors de la mise à jour du statut.');
+      toast.error('Erreur lors de la mise à jour du statut.');
     }
   };
 
@@ -202,7 +232,7 @@ export function AdminOrders() {
               </button>
               
               <button 
-                onClick={() => alert('Génération du bon de commande...')}
+                onClick={() => toast.success('Génération du bon de commande...')}
                 className="flex items-center gap-2 px-4 py-2 border border-brand-200 rounded-lg text-brand-700 hover:bg-brand-50 transition text-sm font-medium ml-auto"
               >
                 <Printer className="w-4 h-4" /> Imprimer documents
@@ -278,6 +308,7 @@ export function AdminOrders() {
                 <div>
                   <p className="font-medium text-brand-900">{selectedOrder.customer}</p>
                   <p className="text-brand-500"><a href={`mailto:${selectedOrder.email}`} className="text-brand-600 hover:underline">{selectedOrder.email}</a></p>
+                  <p className="text-brand-500 mt-1 font-medium">{selectedOrder.shippingAddress?.phone || 'N/A'}</p>
                 </div>
                 <div className="pt-3 border-t border-brand-100">
                   <p className="font-medium text-brand-900 mb-1 flex justify-between">

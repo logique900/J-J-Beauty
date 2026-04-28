@@ -38,38 +38,100 @@ export function Header({
   const displayBrands = (brands?.length || 0) > 0 ? brands : mockBrands;
 
   return (
-    <header className="sticky top-0 z-50 bg-brand-50 dark:bg-brand-100 border-b border-brand-200 dark:border-brand-300 shadow-sm relative text-brand-900 dark:text-brand-900 transition-colors">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-        
-        {/* Mobile Menu Button */}
-        <button 
-          className="lg:hidden p-2 -ml-2 text-brand-600 dark:text-brand-700 hover:text-brand-900 dark:hover:text-brand-800 transition-colors"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        >
-          <Menu className="w-6 h-6" />
-        </button>
- 
-        {/* Logo */}
-        <div 
-          className="text-3xl font-serif font-bold tracking-tight text-brand-900 dark:text-brand-900 cursor-pointer flex-shrink-0" 
-          onClick={onNavigateHome}
-        >
-          J&J Beauty
+    <header className="sticky top-0 z-50 bg-white dark:bg-brand-50 border-b border-brand-200 dark:border-brand-300 shadow-sm text-brand-900 transition-colors">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Top Row: Logo, Search, Icons */}
+        <div className="h-20 flex items-center justify-between gap-8">
+          {/* Mobile Menu Button */}
+          <button 
+            className="lg:hidden p-2 -ml-2 text-brand-600 dark:text-brand-700 hover:text-brand-900 dark:hover:text-brand-800 transition-colors"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+  
+          {/* Logo */}
+          <div 
+            className="text-3xl font-serif font-bold tracking-tight text-brand-900 dark:text-brand-900 cursor-pointer flex-shrink-0" 
+            onClick={onNavigateHome}
+          >
+            J&J Beauty
+          </div>
+
+          {/* Desktop Search Bar (Optional but common in this layout) */}
+          <div className="hidden lg:flex flex-1 max-w-2xl relative">
+            <input 
+              type="text" 
+              placeholder="Rechercher un produit, une marque..." 
+              className="w-full h-11 pl-12 pr-4 rounded-xl border border-brand-200 dark:border-brand-300 bg-brand-50 dark:bg-brand-100 outline-none focus:ring-2 focus:ring-brand-900/10 focus:border-brand-900 transition-all text-sm"
+              onFocus={onOpenSearch}
+              readOnly
+            />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-400" />
+          </div>
+  
+          {/* Right Icons */}
+          <div className="flex items-center gap-3 sm:gap-5">
+            <button onClick={toggleDarkMode} className="p-2 text-brand-600 dark:text-brand-700 hover:text-brand-900 dark:hover:text-brand-800 transition" title="Changer le thème">
+              {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+
+            <button onClick={onOpenSearch} className="lg:hidden p-2 text-brand-600 dark:text-brand-700 hover:text-brand-900 dark:hover:text-brand-800 transition">
+              <Search className="w-5 h-5" />
+            </button>
+            
+            {isAdmin && onNavigateToAdmin && (
+              <button 
+                onClick={onNavigateToAdmin}
+                className="flex text-brand-900 dark:text-brand-900 transition items-center gap-2 bg-brand-100 dark:bg-brand-200 px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-bold font-sans uppercase tracking-widest border border-brand-200 dark:border-brand-300 shadow-sm hover:shadow-md"
+                title="Tableau de bord Admin"
+              >
+                <div className="hidden xs:inline">Admin</div>
+                <div className="xs:hidden">A</div>
+                <div className="w-1.5 h-1.5 bg-accent-500 rounded-full animate-pulse" />
+              </button>
+            )}
+
+            <button 
+              onClick={() => user ? onNavigateToAccount?.() : openAuthModal()} 
+              className="flex items-center gap-2 text-brand-600 dark:text-brand-700 hover:text-brand-900 dark:hover:text-brand-800 transition p-1"
+            >
+              {user ? (
+                <div className="w-8 h-8 bg-brand-900 text-white rounded-full flex items-center justify-center text-xs font-bold ring-2 ring-brand-100 dark:ring-brand-200">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+              ) : (
+                <User className="w-5 h-5" />
+              )}
+            </button>
+
+            <button className="hidden md:block text-brand-600 dark:text-brand-700 hover:text-brand-900 dark:hover:text-brand-800 transition p-1">
+              <Heart className="w-5 h-5" />
+            </button>
+            <button onClick={openCart} className="text-brand-600 dark:text-brand-700 hover:text-brand-900 dark:hover:text-brand-800 transition relative p-1">
+              <ShoppingBag className="w-5 h-5" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-accent-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-brand-50 dark:border-brand-100 shadow-sm">
+                  {cartCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
- 
-        {/* Desktop Navigation (Mega Menu) */}
-        <nav className="hidden lg:flex items-center h-full gap-8 ml-12 flex-1">
+
+        {/* Bottom Row: Desktop Navigation */}
+        <nav className="hidden lg:flex items-center h-12 gap-10 overflow-x-auto no-scrollbar border-t border-brand-100 dark:border-brand-200">
           {displayCategories.map((category) => (
-            <div key={category.id} className="h-full group flex items-center">
+            <div key={category.id} className="h-full group flex items-center relative">
               <button 
                 onClick={() => onNavigateToCategory(category.id)}
-                className="text-sm font-bold text-brand-700 dark:text-brand-700 hover:text-brand-950 dark:hover:text-brand-900 uppercase tracking-widest h-full flex items-center border-b-2 border-transparent group-hover:border-brand-500 transition-colors"
+                className="text-[15px] font-medium text-blue-600 dark:text-blue-500 hover:text-blue-800 dark:hover:text-blue-400 whitespace-nowrap transition-colors py-2 flex items-center gap-1 group-hover:underline"
               >
                 {category.name}
               </button>
               
               {/* Mega Menu Dropdown */}
-              <div className="absolute top-20 left-0 w-full bg-white dark:bg-brand-100 border-t border-brand-200 dark:border-brand-300 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-in-out pointer-events-none group-hover:pointer-events-auto">
+              <div className="fixed top-32 left-0 w-full bg-white dark:bg-brand-100 border-t border-brand-200 dark:border-brand-300 shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-in-out pointer-events-none group-hover:pointer-events-auto z-50">
                 <div className="max-w-7xl mx-auto px-8 py-10 flex gap-12">
                   
                   {/* Category Columns */}
@@ -166,10 +228,10 @@ export function Header({
 
           {/* Brands Tab */}
           <div className="h-full group flex items-center">
-            <button className="text-sm font-bold text-brand-700 dark:text-brand-700 hover:text-brand-950 dark:hover:text-brand-900 uppercase tracking-widest h-full flex items-center border-b-2 border-transparent group-hover:border-brand-900 transition-colors">
+            <button className="text-[15px] font-medium text-blue-600 dark:text-blue-500 hover:text-blue-800 dark:hover:text-blue-400 whitespace-nowrap transition-colors py-2 flex items-center gap-1 group-hover:underline">
               Marques
             </button>
-            <div className="absolute top-20 left-0 w-full bg-white dark:bg-brand-100 border-t border-brand-200 dark:border-brand-300 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ease-in-out pointer-events-none group-hover:pointer-events-auto">
+            <div className="fixed top-32 left-0 w-full bg-white dark:bg-brand-100 border-t border-brand-200 dark:border-brand-300 shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ease-in-out pointer-events-none group-hover:pointer-events-auto z-50">
               <div className="max-w-7xl mx-auto px-8 py-10">
                 <div className="grid grid-cols-4 gap-8">
                   {displayBrands.map(brand => (
@@ -189,54 +251,6 @@ export function Header({
             </div>
           </div>
         </nav>
-
-        {/* Right Icons */}
-        <div className="flex items-center gap-3 sm:gap-5">
-          <button onClick={toggleDarkMode} className="p-2 text-brand-600 dark:text-brand-700 hover:text-brand-900 dark:hover:text-brand-800 transition" title="Changer le thème">
-            {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </button>
-
-          <button onClick={onOpenSearch} className="p-2 text-brand-600 dark:text-brand-700 hover:text-brand-900 dark:hover:text-brand-800 transition">
-            <Search className="w-5 h-5" />
-          </button>
-          
-          {isAdmin && onNavigateToAdmin && (
-            <button 
-              onClick={onNavigateToAdmin}
-              className="flex text-brand-900 dark:text-brand-900 transition items-center gap-2 bg-brand-100 dark:bg-brand-200 px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-bold font-sans uppercase tracking-widest border border-brand-200 dark:border-brand-300 shadow-sm hover:shadow-md"
-              title="Tableau de bord Admin"
-            >
-              <div className="hidden xs:inline">Admin</div>
-              <div className="xs:hidden">A</div>
-              <div className="w-1.5 h-1.5 bg-accent-500 rounded-full animate-pulse" />
-            </button>
-          )}
-
-          <button 
-            onClick={() => user ? onNavigateToAccount?.() : openAuthModal()} 
-            className="flex items-center gap-2 text-brand-600 dark:text-brand-700 hover:text-brand-900 dark:hover:text-brand-800 transition p-1"
-          >
-            {user ? (
-              <div className="w-8 h-8 bg-brand-900 text-white rounded-full flex items-center justify-center text-xs font-bold ring-2 ring-brand-100 dark:ring-brand-200">
-                {user.name.charAt(0).toUpperCase()}
-              </div>
-            ) : (
-              <User className="w-5 h-5" />
-            )}
-          </button>
-
-          <button className="hidden md:block text-brand-600 dark:text-brand-700 hover:text-brand-900 dark:hover:text-brand-800 transition p-1">
-            <Heart className="w-5 h-5" />
-          </button>
-          <button onClick={openCart} className="text-brand-600 dark:text-brand-700 hover:text-brand-900 dark:hover:text-brand-800 transition relative p-1">
-            <ShoppingBag className="w-5 h-5" />
-            {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-accent-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-brand-50 dark:border-brand-100 shadow-sm">
-                {cartCount}
-              </span>
-            )}
-          </button>
-        </div>
       </div>
 
       {/* Mobile Menu Backdrop & Panel */}

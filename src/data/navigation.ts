@@ -5,14 +5,16 @@ export const mockBrands: Brand[] = [
     id: 'b1',
     name: 'J&J Beauty',
     slug: 'jj-beauty',
-    logo: 'https://picsum.photos/seed/jjbeauty/300/150',
+    logoUrl: 'https://picsum.photos/seed/jjbeauty/300/150',
+    bannerUrl: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=1600',
     description: 'Une marque innovante pour sublimer votre beauté naturelle.'
   },
   {
     id: 'b2',
     name: 'Glow Botanics',
     slug: 'glow-botanics',
-    logo: 'https://picsum.photos/seed/glowbotanics/300/150',
+    logoUrl: 'https://picsum.photos/seed/glowbotanics/300/150',
+    bannerUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=1600',
     description: 'Soins naturels infusés aux extraits botaniques.'
   }
 ];
@@ -23,6 +25,7 @@ export const mockCategories: Category[] = [
     name: 'Maquillage',
     slug: 'maquillage',
     description: 'Sublimez votre visage avec nos produits de maquillage',
+    coverImage: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=800',
     subcategories: [
       {
         id: 'c-maq-teint',
@@ -62,6 +65,7 @@ export const mockCategories: Category[] = [
     name: 'Soins',
     slug: 'soins',
     description: 'Une peau éclatante au quotidien',
+    coverImage: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&q=80&w=800',
     subcategories: [
       {
         id: 'c-soin-visage',
@@ -85,6 +89,14 @@ export const mockCategories: Category[] = [
         ]
       }
     ]
+  },
+  {
+    id: 'c-accessoires',
+    name: 'Accessoires',
+    slug: 'accessoires',
+    description: 'Les outils indispensables',
+    coverImage: 'https://images.unsplash.com/photo-1583241800698-e8ab01830a07?auto=format&fit=crop&q=80&w=800',
+    subcategories: []
   }
 ];
 

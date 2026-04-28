@@ -15,12 +15,13 @@ import {
   GoogleAuthProvider,
   updateProfile
 } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { toast } from '../lib/toast';
 
 type AuthView = 'login' | 'register' | 'registered' | 'forgot_password' | 'forgot_password_sent' | '2fa';
 
 export function AuthModal() {
-  const { isAuthModalOpen, closeAuthModal } = useAuth();
+  const { isAuthModalOpen, closeAuthModal, loginWithBiometrics } = useAuth();
   const { isSupported, checkSupport, authenticateBiometrics } = useBiometrics();
   const [view, setView] = useState<AuthView>('login');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -199,7 +200,7 @@ export function AuthModal() {
     } catch (err: any) {
       console.error(err);
       if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
-        setLoginError(`Connexion sociale échouée. Veuillez utiliser l'email.`);
+        setLoginError(`Erreur connexion (${err.code}): Veuillez vérifier la configuration des domaines autorisés dans Firebase.`);
       }
     } finally {
       setIsProcessing(false);
@@ -209,15 +210,39 @@ export function AuthModal() {
   const handleBiometricLogin = async () => {
     setIsProcessing(true);
     try {
+      // 1. Ask for biometric assertion
       const assertion = await authenticateBiometrics();
-      if (assertion) {
-        // In a real app, you'd verify this assertion on your server.
-        // For this demo, if the biometric check passes, we simulate a login.
-        // NOTE: This is purely for UI demonstration as actual Firebase auth requires a token.
-        alert("Authentification biométrique réussie ! (Simulation)");
+      if (!assertion) return;
+
+      // 2. Search for the credential in Firestore
+      const q = query(collection(db, 'passkeys'), where('id', '==', assertion.id));
+      const snap = await getDocs(q);
+      
+      if (snap.empty) {
+        setLoginError("Cet appareil n'est pas reconnu pour la biométrie. Veuillez vous connecter une première fois par email et l'enregistrer dans votre compte.");
+        return;
+      }
+
+      const passkeyData = snap.docs[0].data();
+      const userId = passkeyData.userId;
+
+      // 3. Fetch user details
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        loginWithBiometrics({
+          id: userId,
+          email: userData.email,
+          name: userData.name,
+          role: userData.role || 'user'
+        });
+        toast.success('Bienvenue ! Connecté via biométrie.');
         closeAuthModal();
+      } else {
+        setLoginError("Utilisateur introuvable.");
       }
     } catch (err) {
+      console.error(err);
       setLoginError("Échec de l'authentification biométrique.");
     } finally {
       setIsProcessing(false);

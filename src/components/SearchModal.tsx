@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Search, X, Mic, Camera, Clock, TrendingUp, ArrowRight, Image as ImageIcon } from 'lucide-react';
 import { mockCategories, mockBrands } from '../data/navigation';
 import { Product, Category, Brand } from '../types';
+import { toast } from '../lib/toast';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -111,7 +112,7 @@ export function SearchModal({
 
   const startVoiceSearch = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert("Votre navigateur ne supporte pas la reconnaissance vocale.");
+      toast.success("Votre navigateur ne supporte pas la reconnaissance vocale.");
       return;
     }
     setIsListening(true);

@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Edit2, Trash2, Copy, Archive, Filter, Upload, Download, MoreVertical, X, Image as ImageIcon } from 'lucide-react';
-import { db } from '../../lib/firebase';
+import { db, storage } from '../../lib/firebase';
 import { collection, onSnapshot, doc, deleteDoc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../../context/AuthContext';
+import { ImageUploader } from './ImageUploader';
+import { toast } from '../../lib/toast';
 
 export function AdminProducts() {
   const { isAdmin } = useAuth();
@@ -11,8 +14,8 @@ export function AdminProducts() {
   const [searchTerm, setSearchTerm] = useState('');
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // New product form state
   const initialState = {
@@ -26,6 +29,9 @@ export function AdminProducts() {
     stock: 0,
     status: 'draft',
     category: 'Soin Visage',
+    categoryId: '',
+    brand: '',
+    brandId: '',
     tags: '',
     images: [] as string[]
   };
@@ -51,9 +57,17 @@ export function AdminProducts() {
       console.error("Categories fetch error:", err);
     });
 
+    const unsubBrands = onSnapshot(collection(db, 'brands'), (snap) => {
+        const fetchedBrands = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setBrands(fetchedBrands);
+    }, (err) => {
+      console.error("Brands fetch error:", err);
+    });
+
     return () => {
         unsubProducts();
         unsubCategories();
+        unsubBrands();
     };
   }, [isAdmin]);
 
@@ -69,77 +83,14 @@ export function AdminProducts() {
       stock: product.stock || 0,
       status: product.status || 'draft',
       category: product.category || 'Soin Visage',
+      categoryId: product.categoryId || '',
+      brand: product.brand || '',
+      brandId: product.brandId || '',
       tags: Array.isArray(product.tags) ? product.tags.join(', ') : (product.tags || ''),
       images: product.images || []
     });
     setEditProductId(product.id);
     setIsEditing(true);
-  };
-
-  const handleFileClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const compressAndResize = (base64Str: string): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.src = base64Str;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 800;
-        const MAX_HEIGHT = 800;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.7)); // Compress to 70% quality JPEG
-      };
-    });
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    const currentCount = newProduct.images.length;
-    const remainingSlots = 5 - currentCount;
-    
-    if (remainingSlots <= 0) {
-      alert('Limite de 5 images par produit atteinte.');
-      e.target.value = '';
-      return;
-    }
-
-    Array.from(files as FileList).slice(0, remainingSlots).forEach((file: File) => {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const originalBase64 = reader.result as string;
-        const compressedBase64 = await compressAndResize(originalBase64);
-        setNewProduct(prev => ({
-          ...prev,
-          images: [...prev.images, compressedBase64]
-        }));
-      };
-      reader.readAsDataURL(file);
-    });
-    
-    // Reset input
-    e.target.value = '';
   };
 
   const removeImage = (index: number) => {
@@ -155,10 +106,10 @@ export function AdminProducts() {
       await deleteDoc(doc(db, 'products', productToDelete));
       setProducts(prev => prev.filter(p => p.id !== productToDelete));
       setProductToDelete(null);
-      alert('Contenu supprimé avec succès');
+      toast.success('Contenu supprimé avec succès');
     } catch (err: any) {
       console.error("Delete Error", err);
-      alert(`Erreur lors de la suppression: ${err.message || 'Permissions insuffisantes'}`);
+      toast.error(`Erreur lors de la suppression: ${err.message || 'Permissions insuffisantes'}`);
     }
   };
 
@@ -195,10 +146,10 @@ export function AdminProducts() {
       }
       
       const docRef = await addDoc(collection(db, 'products'), productData);
-      alert('Produit dupliqué avec succès en mode brouillon !');
+      toast.success('Produit dupliqué avec succès en mode brouillon !');
     } catch (err: any) {
       console.error("Duplicate Error", err);
-      alert(`Erreur lors de la duplication: ${err.message || 'Vérifiez les règles de sécurité'}`);
+      toast.error(`Erreur lors de la duplication: ${err.message || 'Vérifiez les règles de sécurité'}`);
     }
   };
 
@@ -229,7 +180,7 @@ export function AdminProducts() {
       // but showing feedback helps user know it "works".
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
-        alert(`Fichier ${file.name} reçu. L'importateur de CSV est en phase de test et sera activé prochainement.`);
+        toast.info(`Fichier ${file.name} reçu. L'importateur de CSV est en phase de test et sera activé prochainement.`);
       }
     };
     input.click();
@@ -251,7 +202,7 @@ export function AdminProducts() {
         await updateDoc(doc(db, 'products', editProductId), {
           ...productData,
         });
-        alert('Produit mis à jour avec succès !');
+        toast.success('Produit mis à jour avec succès !');
       } else {
         const slug = newProduct.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
         await addDoc(collection(db, 'products'), {
@@ -259,7 +210,7 @@ export function AdminProducts() {
           slug,
           createdAt: serverTimestamp()
         });
-        alert('Produit créé avec succès !');
+        toast.success('Produit créé avec succès !');
       }
 
       setIsEditing(false);
@@ -267,7 +218,7 @@ export function AdminProducts() {
       setNewProduct(initialState);
     } catch (err) {
       console.error(err);
-      alert('Erreur lors de l\'enregistrement du produit.');
+      toast.error('Erreur lors de l\'enregistrement du produit.');
     }
   };
 
@@ -422,15 +373,6 @@ export function AdminProducts() {
                   <span className="text-xs font-normal text-brand-400">{newProduct.images.length} fichier(s)</span>
                 </h4>
                 
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleFileChange} 
-                  multiple 
-                  accept="image/*" 
-                  className="hidden" 
-                />
-
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {newProduct.images.map((img, index) => (
                     <div key={index} className="relative group aspect-square rounded-xl overflow-hidden border border-brand-100 shadow-sm">
@@ -449,23 +391,28 @@ export function AdminProducts() {
                     </div>
                   ))}
                   
-                  <button 
-                    onClick={handleFileClick}
-                    className="aspect-square border-2 border-dashed border-brand-200 rounded-xl flex flex-col items-center justify-center text-brand-500 hover:bg-brand-50 hover:border-brand-400 transition"
-                  >
-                    <Plus className="w-6 h-6 mb-1 text-brand-300" />
-                    <span className="text-xs font-medium text-brand-700">Ajouter</span>
-                  </button>
+                  {newProduct.images.length < 5 && (
+                    <div className="aspect-square">
+                      <ImageUploader 
+                        label=""
+                        value=""
+                        onChange={(url) => {
+                          if (url) setNewProduct(prev => ({ ...prev, images: [...prev.images, url] }));
+                        }}
+                        folder="products"
+                        className="h-full"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {newProduct.images.length === 0 && (
                   <div 
-                    onClick={handleFileClick}
-                    className="border-2 border-dashed border-brand-200 rounded-xl p-8 flex flex-col items-center justify-center text-brand-500 hover:bg-brand-50 hover:border-brand-400 transition cursor-pointer"
+                    className="border-2 border-dashed border-brand-200 rounded-xl p-8 flex flex-col items-center justify-center text-brand-500 bg-brand-50/30"
                   >
                     <ImageIcon className="w-10 h-10 mb-3 text-brand-300" />
-                    <p className="font-medium text-brand-700 text-center">Cliquez pour ajouter des images ou glissez-déposez</p>
-                    <p className="text-xs mt-1">PNG, JPG (Max 10MB)</p>
+                    <p className="font-medium text-brand-700 text-center">Aucune image sélectionnée</p>
+                    <p className="text-xs mt-1 text-brand-400 text-center">Utilisez le bouton ci-dessus pour ajouter des images</p>
                   </div>
                 )}
               </div>
@@ -511,6 +458,26 @@ export function AdminProducts() {
                     <option value="draft">Brouillon</option>
                     <option value="active">Actif</option>
                     <option value="archived">Archivé</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-brand-700 mb-1">Marque</label>
+                  <select 
+                    value={newProduct.brandId || ''} 
+                    onChange={e => {
+                      const selectedBrand = brands.find(b => b.id === e.target.value);
+                      setNewProduct({
+                        ...newProduct, 
+                        brandId: e.target.value, 
+                        brand: selectedBrand ? selectedBrand.name : ''
+                      });
+                    }} 
+                    className="w-full px-4 py-2 rounded-lg border border-brand-200 focus:ring-brand-900 focus:border-brand-900 outline-none bg-white"
+                  >
+                    <option value="">Sélectionner une marque</option>
+                    {brands.map(brand => (
+                      <option key={brand.id} value={brand.id}>{brand.name}</option>
+                    ))}
                   </select>
                 </div>
                 <div>

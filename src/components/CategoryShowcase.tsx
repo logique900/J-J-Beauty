@@ -2,49 +2,36 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { ArrowRight } from 'lucide-react';
 
-const categories = [
-  { 
-    id: 'c-maq-teint', 
-    name: 'Le Teint', 
-    subtitle: 'Fonds de teint, poudres & correcteurs', 
-    image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=800',
-    className: 'col-span-1 md:col-span-4 row-span-2'
-  },
-  { 
-    id: 'c-soin-visage', 
-    name: 'Soins Visage', 
-    subtitle: 'L\'éclat au quotidien', 
-    image: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&q=80&w=800',
-    className: 'col-span-1 md:col-span-8 row-span-2'
-  },
-  { 
-    id: 'c-maq-yeux', 
-    name: 'Le Regard', 
-    subtitle: 'Mascaras & Fards', 
-    image: 'https://images.unsplash.com/photo-1583241800698-e8ab01830a07?auto=format&fit=crop&q=80&w=800',
-    className: 'col-span-1 md:col-span-4 row-span-2'
-  },
-  { 
-    id: 'c-maq-levres', 
-    name: 'Les Lèvres', 
-    subtitle: 'Rouges intenses & Gloss', 
-    image: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&q=80&w=800',
-    className: 'col-span-1 md:col-span-4 row-span-2'
-  },
-  { 
-    id: 'c-soin-corps', 
-    name: 'Soins Corps', 
-    subtitle: 'Hydratation & Douceur', 
-    image: 'https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec?auto=format&fit=crop&q=80&w=800',
-    className: 'col-span-1 md:col-span-4 row-span-2'
-  },
-];
+interface Category {
+  id: string;
+  name: string;
+  subtitle?: string;
+  description?: string;
+  coverImage?: string;
+  status: string;
+}
 
 interface CategoryShowcaseProps {
+  categories: Category[];
   onNavigateToCategory: (id: string) => void;
 }
 
-export function CategoryShowcase({ onNavigateToCategory }: CategoryShowcaseProps) {
+export function CategoryShowcase({ categories, onNavigateToCategory }: CategoryShowcaseProps) {
+  // If no dynamic categories, we can show a placeholder or nothing, 
+  // but usually we'll have the seeded ones.
+  // We take the first 5 active categories for the grid layout
+  const displayCategories = categories
+    .filter(c => c.status === 'Actif')
+    .slice(0, 5)
+    .map((c, index) => ({
+      ...c,
+      subtitle: c.subtitle || c.description || 'Découvrez notre sélection',
+      image: c.coverImage || 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=800',
+      className: index === 1 ? 'col-span-1 md:col-span-8 row-span-2' : 'col-span-1 md:col-span-4 row-span-2'
+    }));
+
+  if (displayCategories.length === 0) return null;
+
   return (
     <section className="py-16 sm:py-24 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -67,7 +54,7 @@ export function CategoryShowcase({ onNavigateToCategory }: CategoryShowcaseProps
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-[240px] gap-4 md:gap-6">
-          {categories.map((category, index) => (
+          {displayCategories.map((category, index) => (
             <motion.div
               key={category.id}
               initial={{ opacity: 0, y: 30 }}
@@ -89,9 +76,9 @@ export function CategoryShowcase({ onNavigateToCategory }: CategoryShowcaseProps
               {/* Content */}
               <div className="absolute inset-0 p-6 sm:p-8 flex flex-col justify-end">
                 <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                  <span className="text-white/80 text-sm font-medium tracking-wider uppercase block mb-1">
+                  <p className="text-white/80 text-sm font-medium tracking-wider uppercase block mb-1 truncate">
                     {category.subtitle}
-                  </span>
+                  </p>
                   <div className="flex items-center justify-between">
                     <h3 className="text-2xl md:text-3xl font-serif font-bold text-white">
                       {category.name}

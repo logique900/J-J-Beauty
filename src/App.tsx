@@ -16,18 +16,58 @@ import { CartPage } from './components/CartPage';
 import { CheckoutPage } from './components/CheckoutPage';
 import { AuthModal } from './components/AuthModal';
 import { AccountPage } from './components/AccountPage';
+import { ToastContainer } from './components/ToastContainer';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { PWAManager } from './components/PWAManager';
 import { PullToRefresh } from './components/PullToRefresh';
 import { ThemeProvider } from './context/ThemeContext';
-import { getOrSeedProducts, getOrSeedCategories, getOrSeedBrands, db } from './lib/firebase';
+import { AdminOrderListener } from './components/admin/AdminOrderListener';
+import { getOrSeedProducts, getOrSeedCategories, getOrSeedBrands, getOrSeedCollections, getOrSeedHeroSlides, db } from './lib/firebase';
 import { getAuth } from 'firebase/auth';
-import { onSnapshot, collection, query, where } from 'firebase/firestore';
+import { onSnapshot, collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 import { HeroSection } from './components/HeroSection';
 import { CategoryShowcase } from './components/CategoryShowcase';
+import { BrandShowcase } from './components/BrandShowcase';
 import { CategoryHeader } from './components/CategoryHeader';
+import { BrandHeader } from './components/BrandHeader';
 import { Footer } from './components/Footer';
+import { useAuth } from './context/AuthContext';
+
+function VisitorTracker() {
+  const { user } = useAuth();
+  
+  useEffect(() => {
+    const trackVisit = async () => {
+      try {
+        let anonymousId = localStorage.getItem('anonymous_id');
+        if (!anonymousId) {
+          anonymousId = 'anon_' + Math.random().toString(36).substring(2, 11);
+          localStorage.setItem('anonymous_id', anonymousId);
+        }
+
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        const visitorId = user ? user.uid : anonymousId;
+        const visitDocId = `${today}_${visitorId}`;
+
+        // Attempt to create unique record for today
+        // This will fail if already exists for today due to rules, which is fine
+        await setDoc(doc(db, 'visits', visitDocId), {
+          date: today,
+          userId: user ? user.uid : null,
+          anonymousId: user ? null : anonymousId,
+          createdAt: serverTimestamp()
+        });
+      } catch (err) {
+        // Silently ignore permission errors (already visited today) or other tracking issues
+      }
+    };
+
+    trackVisit();
+  }, [user]);
+
+  return null;
+}
 
 type AppRoute = 
   | { type: 'home' }
@@ -62,6 +102,7 @@ export default function App() {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
+  const [collections, setCollections] = useState<any[]>([]);
   const [isDbLoaded, setIsDbLoaded] = useState(false);
 
   // Filters & Sorting state
@@ -75,6 +116,7 @@ export default function App() {
     await getOrSeedProducts();
     await getOrSeedCategories();
     await getOrSeedBrands();
+    await getOrSeedCollections();
   };
 
   useEffect(() => {
@@ -86,7 +128,9 @@ export default function App() {
         await Promise.all([
           getOrSeedProducts(),
           getOrSeedCategories(),
-          getOrSeedBrands()
+          getOrSeedBrands(),
+          getOrSeedCollections(),
+          getOrSeedHeroSlides()
         ]);
       } catch (err) {
         console.error("Initial seed/fetch check failed:", err);
@@ -110,18 +154,31 @@ export default function App() {
     const unsubCategories = onSnapshot(categoriesQuery, (snap) => {
       const cats = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
       setCategories(cats.sort((a: any, b: any) => (a.position || 0) - (b.position || 0)));
+    }, (err) => {
+      console.error("Categories sync error:", err);
     });
 
     const brandsQuery = query(collection(db, 'brands'), where('status', '==', 'Actif'));
     const unsubBrands = onSnapshot(brandsQuery, (snap) => {
       const brs = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
       setBrands(brs);
+    }, (err) => {
+      console.error("Brands sync error:", err);
+    });
+
+    const collectionsQuery = query(collection(db, 'collections'), where('status', '==', 'Actif'));
+    const unsubCollections = onSnapshot(collectionsQuery, (snap) => {
+      const cols = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+      setCollections(cols);
+    }, (err) => {
+      console.error("Collections sync error:", err);
     });
 
     return () => {
       unsubProducts();
       unsubCategories();
       unsubBrands();
+      unsubCollections();
     };
   }, []);
 
@@ -209,8 +266,9 @@ export default function App() {
       }
 
       if (route.type === 'brand') {
-        const brandObj = mockBrands.find(b => b.id === (route as any).id);
-        if (brandObj && p.brand !== brandObj.name) return false;
+        const brandId = (route as any).id;
+        const brandObj = brands.find(b => b.id === brandId) || mockBrands.find(b => b.id === brandId);
+        if (brandObj && p.brandId !== brandObj.id && p.brand !== brandObj.name) return false;
       }
       return true;
     });
@@ -293,6 +351,8 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
+        <VisitorTracker />
+        <AdminOrderListener />
         <CartProvider>
           <div className="min-h-screen bg-brand-50 font-sans text-brand-950">
             <PWAManager />
@@ -337,32 +397,54 @@ export default function App() {
                       <HeroSection onExplore={() => {
                         document.getElementById('main-products')?.scrollIntoView({ behavior: 'smooth' });
                       }} />
-                      <CategoryShowcase onNavigateToCategory={navHelpers.goToCategory} />
+                      <CategoryShowcase categories={categories} onNavigateToCategory={navHelpers.goToCategory} />
+                      <BrandShowcase brands={brands} products={allProducts} onNavigateToBrand={navHelpers.goToBrand} />
                     </>
                   )}
-                  {route.type === 'category' && (() => {
-                    const catObj = categories.find(c => c.id === route.id) || mockCategories.find(c => c.id === route.id);
-                    return catObj ? (
-                      <CategoryHeader 
-                        category={catObj} 
-                        selectedCollectionIds={filters.collections}
-                        onToggleCollection={(colId) => {
-                          setFilters(prev => ({
-                            ...prev,
-                            collections: prev.collections.includes(colId) 
-                              ? prev.collections.filter(id => id !== colId)
-                              : [...prev.collections, colId]
-                          }));
-                        }}
-                        onClearCollections={() => {
-                          setFilters(prev => ({ ...prev, collections: [] }));
-                        }}
-                      />
-                    ) : null;
-                  })()}
+                    {route.type === 'category' && (() => {
+                      const catObj = categories.find(c => c.id === route.id) || mockCategories.find(c => c.id === route.id);
+                      return catObj ? (
+                        <CategoryHeader 
+                          category={catObj} 
+                          selectedCollectionIds={filters.collections}
+                          onToggleCollection={(colId) => {
+                            setFilters(prev => ({
+                              ...prev,
+                              collections: prev.collections.includes(colId) 
+                                ? prev.collections.filter(id => id !== colId)
+                                : [...prev.collections, colId]
+                            }));
+                          }}
+                          onClearCollections={() => {
+                            setFilters(prev => ({ ...prev, collections: [] }));
+                          }}
+                        />
+                      ) : null;
+                    })()}
+                    {route.type === 'brand' && (() => {
+                      const brandObj = brands.find(b => b.id === route.id) || mockBrands.find(b => b.id === route.id);
+                      if (!brandObj) return null;
+                      const count = allProducts.filter(p => p.brandId === brandObj.id || p.brand === brandObj.name).length;
+                      return (
+                        <BrandHeader 
+                          brand={brandObj} 
+                          productCount={count}
+                          onBack={() => setRoute({ type: 'home' })}
+                        />
+                      );
+                    })()}
                   <main id="main-products" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col lg:flex-row gap-8">
                     <div className="hidden lg:block shrink-0 sticky top-24 self-start">
-                      <FilterSidebar isOpen={true} onClose={() => {}} filters={filters} setFilters={setFilters} totalResults={totalProducts} allProducts={allProducts} />
+                      <FilterSidebar 
+                        isOpen={true} 
+                        onClose={() => {}} 
+                        filters={filters} 
+                        setFilters={setFilters} 
+                        totalResults={totalProducts} 
+                        allProducts={allProducts}
+                        allBrands={brands}
+                        allCategories={categories}
+                      />
                     </div>
 
                   <div className="flex-1 w-full min-w-0">
@@ -433,7 +515,16 @@ export default function App() {
             </PullToRefresh>
           )}
 
-          <FilterSidebar isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} filters={filters} setFilters={setFilters} totalResults={totalProducts} allProducts={allProducts} />
+          <FilterSidebar 
+            isOpen={isFilterOpen} 
+            onClose={() => setIsFilterOpen(false)} 
+            filters={filters} 
+            setFilters={setFilters} 
+            totalResults={totalProducts} 
+            allProducts={allProducts} 
+            allBrands={brands}
+            allCategories={categories}
+          />
           <QuickViewModal product={quickViewProduct} onClose={() => setQuickViewProduct(null)} />
           <SearchModal 
             isOpen={isSearchOpen} 
@@ -444,6 +535,7 @@ export default function App() {
             categories={categories}
             products={allProducts}
           />
+          <ToastContainer />
           <CartDrawer />
           <AuthModal />
         </div>

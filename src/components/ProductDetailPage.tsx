@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { ProductCard } from './ProductCard';
 import { useCart } from '../context/CartContext';
+import { toast } from '../lib/toast';
 
 interface ProductDetailPageProps {
   product: Product;
@@ -53,7 +54,7 @@ export function ProductDetailPage({ product, onBack, onNavigate, allProducts = [
     } else {
       // Fallback copy to clipboard
       navigator.clipboard.writeText(window.location.href);
-      alert('Lien copié dans le presse-papier !');
+      toast.success('Lien copié dans le presse-papier !');
     }
   };
 

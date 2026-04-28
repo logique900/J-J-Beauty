@@ -18,6 +18,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   logout: () => Promise<void>;
+  loginWithBiometrics: (userData: User) => void;
   isAuthModalOpen: boolean;
   openAuthModal: () => void;
   closeAuthModal: () => void;
@@ -30,6 +31,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  const adminEmails = ['logique900@gmail.com', 'admin@j-jbeauty.tn'];
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
@@ -68,6 +71,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
+  const loginWithBiometrics = (userData: User) => {
+    setUser(userData);
+  };
+
   const logout = async () => {
     try {
       await signOut(auth);
@@ -82,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       loading,
       logout,
+      loginWithBiometrics,
       isAuthModalOpen,
       openAuthModal: () => setIsAuthModalOpen(true),
       closeAuthModal: () => setIsAuthModalOpen(false),

@@ -3,13 +3,15 @@ import { Plus, Search, Edit2, Trash2, Image as ImageIcon, X, Move } from 'lucide
 import { db } from '../../lib/firebase';
 import { collection, onSnapshot, doc, deleteDoc, updateDoc, addDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
+import { ImageUploader } from './ImageUploader';
+import { toast } from '../../lib/toast';
 
 export function AdminCategories() {
   const { isAdmin } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
-  const [currentCat, setCurrentCat] = useState<any>({ id: '', name: '', slug: '', description: '', status: 'Actif', position: 0, collections: [] as any[] });
+  const [currentCat, setCurrentCat] = useState<any>({ id: '', name: '', subtitle: '', slug: '', description: '', status: 'Actif', position: 0, collections: [] as any[] });
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -29,7 +31,7 @@ export function AdminCategories() {
   };
 
   const handleSave = async () => {
-    if (!currentCat.name) return alert('Nom requis');
+    if (!currentCat.name) return toast.success('Nom requis');
     const slug = currentCat.slug || currentCat.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
     
     if (currentCat.id) {
@@ -53,11 +55,11 @@ export function AdminCategories() {
     }
 
     setIsEditing(false);
-    setCurrentCat({ id: '', name: '', slug: '', description: '', status: 'Actif', position: categories.length + 1, collections: [], coverImage: '', promo: { title: '', text: '', image: '' } });
+    setCurrentCat({ id: '', name: '', subtitle: '', slug: '', description: '', status: 'Actif', position: categories.length + 1, collections: [], coverImage: '', promo: { title: '', text: '', image: '' } });
   };
 
   const handleEdit = (cat: any) => {
-    setCurrentCat({ ...cat, collections: cat.collections || [], promo: cat.promo || { title: '', text: '', image: '' } });
+    setCurrentCat({ ...cat, subtitle: cat.subtitle || '', collections: cat.collections || [], promo: cat.promo || { title: '', text: '', image: '' } });
     setIsEditing(true);
   };
 
@@ -193,6 +195,10 @@ export function AdminCategories() {
                 <input type="text" value={currentCat.name} onChange={e => setCurrentCat({...currentCat, name: e.target.value})} className="w-full px-4 py-2 rounded-lg border border-brand-200 focus:ring-brand-900 focus:border-brand-900 outline-none" placeholder="Ex: Nouveautés" />
               </div>
               <div>
+                <label className="block text-sm font-medium text-brand-700 mb-1">Sous-titre (Showcase)</label>
+                <input type="text" value={currentCat.subtitle || ''} onChange={e => setCurrentCat({...currentCat, subtitle: e.target.value})} className="w-full px-4 py-2 rounded-lg border border-brand-200 focus:ring-brand-900 focus:border-brand-900 outline-none" placeholder="Ex: Découvrez le meilleur du teint" />
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-brand-700 mb-1">Slug (URL) *</label>
                 <input type="text" value={currentCat.slug} onChange={e => setCurrentCat({...currentCat, slug: e.target.value})} className="w-full px-4 py-2 rounded-lg border border-brand-200 focus:ring-brand-900 focus:border-brand-900 outline-none bg-brand-50" placeholder="nouveautes" />
               </div>
@@ -205,26 +211,38 @@ export function AdminCategories() {
 
             <div className="border-t border-brand-100 pt-6">
               <h4 className="font-semibold text-brand-900 mb-4">Images & Promotion (Optionnel)</h4>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-brand-700 mb-1">Image de Banner (Cover URL)</label>
-                  <input type="text" value={currentCat.coverImage || ''} onChange={e => setCurrentCat({...currentCat, coverImage: e.target.value})} className="w-full px-4 py-2 rounded-lg border border-brand-200 focus:ring-brand-900 focus:border-brand-900 outline-none" placeholder="https://..." />
-                  <p className="text-xs text-brand-500 mt-1">Image affichée en en-tête de la page catégorie de cette marque.</p>
-                </div>
+              <div className="space-y-6">
+                <ImageUploader 
+                  label="Image de Banner (Collection Showcase)"
+                  value={currentCat.coverImage || ''}
+                  onChange={(url) => setCurrentCat({ ...currentCat, coverImage: url })}
+                  folder="categories/banners"
+                />
                 
-                <div className="bg-brand-50 p-4 rounded-xl space-y-4 border border-brand-100">
-                  <h5 className="text-sm font-bold text-brand-900">Bloc Promo du Mega-Menu</h5>
-                  <div>
-                    <label className="block text-xs font-medium text-brand-700 mb-1">Titre principal</label>
-                    <input type="text" value={currentCat.promo?.title || ''} onChange={e => setCurrentCat({...currentCat, promo: { ...currentCat.promo, image: currentCat.promo?.image || '', text: currentCat.promo?.text || '', title: e.target.value }})} className="w-full px-3 py-1.5 rounded-lg border border-brand-200 text-sm outline-none focus:border-brand-900" placeholder="Découvrir la collection..." />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-brand-700 mb-1">Sous-titre (Sur-titre)</label>
-                    <input type="text" value={currentCat.promo?.text || ''} onChange={e => setCurrentCat({...currentCat, promo: { ...currentCat.promo, image: currentCat.promo?.image || '', title: currentCat.promo?.title || '', text: e.target.value }})} className="w-full px-3 py-1.5 rounded-lg border border-brand-200 text-sm outline-none focus:border-brand-900" placeholder="Nouveautés" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-brand-700 mb-1">Image Promo (URL)</label>
-                    <input type="text" value={currentCat.promo?.image || ''} onChange={e => setCurrentCat({...currentCat, promo: { ...currentCat.promo, title: currentCat.promo?.title || '', text: currentCat.promo?.text || '', image: e.target.value }})} className="w-full px-3 py-1.5 rounded-lg border border-brand-200 text-sm outline-none focus:border-brand-900" placeholder="https://..." />
+                <div className="bg-brand-50 p-6 rounded-2xl space-y-4 border border-brand-100">
+                  <h5 className="text-sm font-bold text-brand-900 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-brand-400"></span>
+                    Bloc Promo du Mega-Menu
+                  </h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-medium text-brand-700 mb-1">Titre principal</label>
+                        <input type="text" value={currentCat.promo?.title || ''} onChange={e => setCurrentCat({...currentCat, promo: { ...currentCat.promo, image: currentCat.promo?.image || '', text: currentCat.promo?.text || '', title: e.target.value }})} className="w-full px-3 py-2 rounded-lg border border-brand-200 text-sm outline-none focus:border-brand-900 bg-white shadow-sm" placeholder="Découvrir la collection..." />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-brand-700 mb-1">Sous-titre (Sur-titre)</label>
+                        <input type="text" value={currentCat.promo?.text || ''} onChange={e => setCurrentCat({...currentCat, promo: { ...currentCat.promo, image: currentCat.promo?.image || '', title: currentCat.promo?.title || '', text: e.target.value }})} className="w-full px-3 py-2 rounded-lg border border-brand-200 text-sm outline-none focus:border-brand-900 bg-white shadow-sm" placeholder="Nouveautés" />
+                      </div>
+                    </div>
+                    <div>
+                      <ImageUploader 
+                        label="Image Promotionnelle"
+                        value={currentCat.promo?.image || ''}
+                        onChange={(url) => setCurrentCat({ ...currentCat, promo: { ...currentCat.promo, image: url, title: currentCat.promo?.title || '', text: currentCat.promo?.text || '' } })}
+                        folder="categories/promos"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

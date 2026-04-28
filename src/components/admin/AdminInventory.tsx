@@ -4,6 +4,7 @@ import { db } from '../../lib/firebase';
 import { collection, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 import { useAuth } from '../../context/AuthContext';
+import { toast } from '../../lib/toast';
 
 export function AdminInventory() {
   const { isAdmin } = useAuth();
@@ -29,7 +30,7 @@ export function AdminInventory() {
     setSyncing(true);
     setTimeout(() => {
       setSyncing(false);
-      alert('Synchronisation ERP terminée (Données simulées mises à jour).');
+      toast.success('Synchronisation ERP terminée (Données simulées mises à jour).');
     }, 2000);
   };
 
@@ -55,7 +56,7 @@ export function AdminInventory() {
       });
     } catch (err) {
       console.error("Stock update error:", err);
-      alert("Erreur lors de la mise à jour du stock.");
+      toast.error("Erreur lors de la mise à jour du stock.");
     }
   };
 

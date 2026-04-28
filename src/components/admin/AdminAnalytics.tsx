@@ -66,24 +66,61 @@ export function AdminAnalytics() {
     totalRevenue: 0,
     ordersCount: 0,
     averageValue: 0,
-    conversionRate: 3.2
+    uniqueVisitors: 0,
+    conversionRate: 0
   });
 
   useEffect(() => {
     if (!isAdmin) return;
     
-    const unsubscribe = onSnapshot(collection(db, 'orders'), (snap) => {
+    // Listen to orders
+    const unsubOrders = onSnapshot(collection(db, 'orders'), (snap) => {
       const orders = snap.docs.map(doc => doc.data());
       const total = orders.reduce((acc, curr) => acc + (curr.totalAmount || 0), 0);
       const count = orders.length;
-      setStats({
-        totalRevenue: total,
-        ordersCount: count,
-        averageValue: count > 0 ? total / count : 0,
-        conversionRate: 3.2 // Hardcoded as we don't have visitor count tracking yet
+      
+      setStats(prev => {
+        const newOrdersCount = count;
+        const newTotalRevenue = total;
+        // Recalculate conversion rate if we have visitors
+        const convRate = prev.uniqueVisitors > 0 ? (newOrdersCount / prev.uniqueVisitors) * 100 : 0;
+        
+        return {
+          ...prev,
+          totalRevenue: newTotalRevenue,
+          ordersCount: newOrdersCount,
+          averageValue: newOrdersCount > 0 ? newTotalRevenue / newOrdersCount : 0,
+          conversionRate: parseFloat(convRate.toFixed(2))
+        };
       });
     });
-    return () => unsubscribe();
+
+    // Listen to visits for unique visitors count
+    const unsubVisits = onSnapshot(collection(db, 'visits'), (snap) => {
+      // Get unique visitor IDs across all visit records
+      const visitorIds = new Set();
+      snap.docs.forEach(doc => {
+        const data = doc.data();
+        const id = data.userId || data.anonymousId;
+        if (id) visitorIds.add(id);
+      });
+      
+      const count = visitorIds.size;
+      
+      setStats(prev => {
+        const convRate = count > 0 ? (prev.ordersCount / count) * 100 : 0;
+        return {
+          ...prev,
+          uniqueVisitors: count,
+          conversionRate: parseFloat(convRate.toFixed(2))
+        };
+      });
+    });
+
+    return () => {
+      unsubOrders();
+      unsubVisits();
+    };
   }, [isAdmin]);
 
   const renderKPIs = () => {
@@ -94,14 +131,14 @@ export function AdminAnalytics() {
             <KpiBox title="Chiffre d'Affaires" value={`${stats.totalRevenue.toLocaleString()} DT`} trend="+12.5%" isPos={true} />
             <KpiBox title="Commandes" value={stats.ordersCount.toString()} trend="+5.2%" isPos={true} />
             <KpiBox title="Panier Moyen" value={`${stats.averageValue.toFixed(2)} DT`} trend="+1.2%" isPos={true} />
-            <KpiBox title="Taux de Conversion" value={`${stats.conversionRate}%`} trend="-0.4%" isPos={false} />
+            <KpiBox title="Taux de Conversion" value={`${stats.conversionRate}%`} trend="+0.4%" isPos={true} />
           </>
         );
       case 'finance':
         return (
           <>
-            <KpiBox title="Revenus Nets" value="184 000 DT" trend="+18.5%" isPos={true} />
-            <KpiBox title="Coût des Marchandises" value="88 000 DT" trend="+10.2%" isPos={false} />
+            <KpiBox title="Revenus Nets" value={`${(stats.totalRevenue * 0.85).toLocaleString()} DT`} trend="+18.5%" isPos={true} />
+            <KpiBox title="Coût des Marchandises" value={`${(stats.totalRevenue * 0.4).toLocaleString()} DT`} trend="+10.2%" isPos={false} />
             <KpiBox title="Marge Brute" value="52.1%" trend="+2.4%" isPos={true} />
             <KpiBox title="Remboursements" value="1 240 DT" trend="-15.0%" isPos={true} />
           </>
@@ -118,7 +155,7 @@ export function AdminAnalytics() {
       case 'traffic':
         return (
           <>
-            <KpiBox title="Visiteurs Uniques" value="124K" trend="+22.5%" isPos={true} />
+            <KpiBox title="Visiteurs Uniques" value={stats.uniqueVisitors.toLocaleString()} trend="+22.5%" isPos={true} />
             <KpiBox title="Taux de Rebond" value="42.5%" trend="-5.2%" isPos={true} />
             <KpiBox title="Pages par Session" value="4.2" trend="+0.8%" isPos={true} />
             <KpiBox title="Temps Moyen" value="3m 45s" trend="+12s" isPos={true} />
@@ -198,8 +235,8 @@ export function AdminAnalytics() {
               </button>
             </div>
             
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-80 w-full min-h-[320px]">
+              <ResponsiveContainer width="99%" height="100%">
                 {activeReport === 'sales' ? (
                   <LineChart data={SALES_DATA}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f7eaea" />

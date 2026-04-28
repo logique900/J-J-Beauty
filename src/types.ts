@@ -56,7 +56,9 @@ export interface Brand {
   id: string;
   name: string;
   slug: string;
-  logo: string;
+  logoUrl: string;
+  bannerUrl?: string;
+  website?: string;
   description: string;
   status?: 'Actif' | 'Brouillon';
   createdAt?: any;
@@ -76,6 +78,7 @@ export interface Product {
   name: string;
   slug?: string;
   brand?: string;
+  brandId?: string;
   sku?: string;
   category?: string;
   categoryId?: string; // Links to child category
@@ -100,4 +103,16 @@ export interface Product {
   composition?: string;
   careInstructions?: string;
   features?: ProductFeature[];
+}
+
+export interface HeroSlide {
+  id: string;
+  title: string;
+  subtitle?: string;
+  image: string;
+  cta?: string;
+  position: number;
+  status: 'active' | 'inactive';
+  createdAt: any;
+  updatedAt: any;
 }

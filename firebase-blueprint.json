@@ -42,6 +42,9 @@
         "name": { "type": "string" },
         "slug": { "type": "string" },
         "category": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "brand": { "type": "string" },
+        "brandId": { "type": "string" },
         "description": { "type": "string" },
         "shortDescription": { "type": "string" },
         "price": { "type": "number" },
@@ -81,6 +84,8 @@
         "name": { "type": "string" },
         "website": { "type": "string" },
         "description": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "bannerUrl": { "type": "string" },
         "status": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
@@ -102,10 +107,91 @@
         "trackingNumber": { "type": "string" },
         "address": { "type": "string" },
         "items": { "type": "array" },
+        "newsletterOptIn": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "customerEmail", "status", "totalAmount", "createdAt", "updatedAt"]
+    },
+    "Passkey": {
+      "title": "Passkey",
+      "description": "A WebAuthn/Biometric credential",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "email": { "type": "string" },
+        "deviceName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "email", "deviceName", "createdAt"]
+    },
+    "Visit": {
+      "title": "Visit",
+      "description": "A record of a unique visitor on a specific day",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string" },
+        "userId": { "type": "string" },
+        "anonymousId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "createdAt"]
+    },
+    "Collection": {
+      "title": "Collection",
+      "description": "A curated collection of products (e.g. New Arrivals)",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "image": { "type": "string" },
+        "status": { "type": "string", "enum": ["Actif", "Brouillon"] },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "slug", "image", "status", "createdAt", "updatedAt"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Global application settings",
+      "type": "object",
+      "properties": {
+        "storeName": { "type": "string" },
+        "contactEmail": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "currency": { "type": "string" },
+        "socialLinks": { "type": "object" }
+      }
+    },
+    "HeroSlide": {
+      "title": "HeroSlide",
+      "description": "A slide in the hero section carousel",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "image": { "type": "string" },
+        "cta": { "type": "string" },
+        "position": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "image", "position", "status", "createdAt", "updatedAt"]
+    },
+    "Subscriber": {
+      "title": "Subscriber",
+      "description": "An email subscriber for newsletters",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "source": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "createdAt"]
     }
   },
   "firestore": {
@@ -132,6 +218,30 @@
     "/brands/{brandId}": {
       "schema": { "$ref": "#/entities/Brand" },
       "description": "Product brands."
+    },
+    "/collections/{collectionId}": {
+      "schema": { "$ref": "#/entities/Collection" },
+      "description": "Product collections."
+    },
+    "/settings/{settingsId}": {
+      "schema": { "$ref": "#/entities/Settings" },
+      "description": "Global settings."
+    },
+    "/passkeys/{passkeyId}": {
+      "schema": { "$ref": "#/entities/Passkey" },
+      "description": "WebAuthn credentials mapping."
+    },
+    "/visits/{visitId}": {
+      "schema": { "$ref": "#/entities/Visit" },
+      "description": "Visitor analytics records"
+    },
+    "/hero-slides/{slideId}": {
+      "schema": { "$ref": "#/entities/HeroSlide" },
+      "description": "Hero section slides"
+    },
+    "/subscribers/{emailId}": {
+      "schema": { "$ref": "#/entities/Subscriber" },
+      "description": "Email subscribers for the newsletter"
     }
   }
 }

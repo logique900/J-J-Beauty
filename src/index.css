@@ -50,3 +50,11 @@ body {
   @apply bg-brand-50 text-brand-950 transition-colors duration-300;
 }
 
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+

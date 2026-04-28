@@ -1,13 +1,17 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer, collection, getDocs, writeBatch, query, where, serverTimestamp, orderBy } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { mockProducts } from '../data/mockProducts';
-import { mockCategories, mockBrands } from '../data/navigation';
+import { mockCategories, mockBrands, mockCollections } from '../data/navigation';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
+export const storage = getStorage(app);
+
+export const adminEmails = ['logique900@gmail.com', 'admin@j-jbeauty.tn'];
 
 // Seed and fetch categories
 export async function getOrSeedCategories() {
@@ -22,7 +26,6 @@ export async function getOrSeedCategories() {
     }
 
     // 2. If empty, maybe we are Admin and need to see Drafts or Seed
-    const adminEmails = ['logique900@gmail.com', 'admin@j-jbeauty.tn'];
     if (auth.currentUser) {
       try {
         const snapAdmin = await getDocs(query(categoriesRef, orderBy('position', 'asc')));
@@ -166,6 +169,103 @@ export async function getOrSeedBrands() {
   } catch (error: any) {
     console.error("Brands fetch error:", error);
     return mockBrands;
+  }
+}
+
+export async function getOrSeedCollections() {
+  const collectionsRef = collection(db, 'collections');
+  try {
+    // 1. Try public query First (safe for anyone)
+    const qPublic = query(collectionsRef, where('status', '==', 'Actif'), orderBy('name', 'asc'));
+    const snapPublic = await getDocs(qPublic);
+    
+    if (!snapPublic.empty) {
+      return snapPublic.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
+
+    // 2. If empty and admin, seed
+    if (auth.currentUser && adminEmails.includes(auth.currentUser.email || '')) {
+      console.log("Admin detected: Seeding collections...");
+      const batch = writeBatch(db);
+      for (const col of mockCollections) {
+        const docRef = doc(collectionsRef, col.id);
+        batch.set(docRef, {
+          ...col,
+          status: 'Actif',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      }
+      await batch.commit();
+    }
+
+    return mockCollections;
+  } catch (error: any) {
+    console.error("Collections fetch error:", error);
+    return mockCollections;
+  }
+}
+
+export async function getOrSeedHeroSlides() {
+  const slidesRef = collection(db, 'hero-slides');
+  const defaultSlides = [
+    {
+      id: 'slide-1',
+      image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=2000',
+      title: 'Bienvenue chez J&J Beauty',
+      subtitle: 'L\'excellence cosmétique à votre portée. Révélez votre beauté naturelle avec notre collection exclusive.',
+      cta: 'Découvrir la collection',
+      position: 1,
+      status: 'active'
+    },
+    {
+      id: 'slide-2',
+      image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=2000',
+      title: 'Nouveautés Maquillage',
+      subtitle: 'Des teintes éclatantes et des textures inédites pour sublimer votre visage au quotidien.',
+      cta: 'Voir les nouveautés',
+      position: 2,
+      status: 'active'
+    },
+    {
+      id: 'slide-3',
+      image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=2000',
+      title: 'Rituels de Soin',
+      subtitle: 'Prenez du temps pour vous avec notre gamme de soins relaxants, hydratants et purifiants.',
+      cta: 'Explorer les soins',
+      position: 3,
+      status: 'active'
+    }
+  ];
+
+  try {
+    const qPublic = query(slidesRef, where('status', '==', 'active'), orderBy('position', 'asc'));
+    const snapPublic = await getDocs(qPublic);
+    
+    if (!snapPublic.empty) {
+      return snapPublic.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
+
+    if (auth.currentUser && adminEmails.includes(auth.currentUser.email || '')) {
+      console.log("Admin detected: Seeding hero slides...");
+      const batch = writeBatch(db);
+      for (const slide of defaultSlides) {
+        const docRef = doc(slidesRef, slide.id);
+        batch.set(docRef, {
+          ...slide,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      }
+      await batch.commit();
+      const snapAgain = await getDocs(qPublic);
+      return snapAgain.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
+
+    return defaultSlides;
+  } catch (error: any) {
+    console.error("Hero slides fetch error:", error);
+    return defaultSlides;
   }
 }
 

@@ -8,6 +8,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../lib/firebase';
 import { addDoc, collection, doc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore';
+import { toast } from '../lib/toast';
 
 interface CheckoutPageProps {
   onNavigateHome: () => void;
@@ -29,8 +30,17 @@ export function CheckoutPage({ onNavigateHome, onNavigateToCart }: CheckoutPageP
 
   // Form States
   const [email, setEmail] = useState(user?.email || '');
+  const [newsletterOptIn, setNewsletterOptIn] = useState(false);
   const [shippingAddress, setShippingAddress] = useState({
-    firstName: user?.name?.split(' ')?.[0] || '', lastName: user?.name?.split(' ')?.slice(1).join(' ') || '', address1: '', address2: '', city: '', zipCode: '', country: 'France', company: ''
+    firstName: user?.name?.split(' ')?.[0] || '', 
+    lastName: user?.name?.split(' ')?.slice(1).join(' ') || '', 
+    address1: '', 
+    address2: '', 
+    city: '', 
+    zipCode: '', 
+    country: 'Tunisie', 
+    company: '',
+    phone: ''
   });
   const [billingSameAsShipping, setBillingSameAsShipping] = useState(true);
   const [deliveryMethod, setDeliveryMethod] = useState('delivery');
@@ -63,8 +73,9 @@ export function CheckoutPage({ onNavigateHome, onNavigateToCart }: CheckoutPageP
             address2: '', 
             city: def.city || '', 
             zipCode: def.zip || '', 
-            country: def.country || 'France', 
-            company: ''
+            country: def.country || 'Tunisie', 
+            company: '',
+            phone: def.phone || ''
           });
           setUseCustomAddress(false);
         }
@@ -85,41 +96,81 @@ export function CheckoutPage({ onNavigateHome, onNavigateToCart }: CheckoutPageP
       // Easy readable ID (e.g. CMD-49218)
       const easyOrderId = 'CMD-' + Math.floor(10000 + Math.random() * 90000);
       
-      if (user) {
-        await setDoc(doc(db, 'orders', easyOrderId), {
-          userId: user.id,
-          status: 'pending',
-          totalAmount: finalTotal,
-          items: items.map(item => ({
-            productId: item.product.id,
-            name: item.product.name,
-            price: item.product.price,
-            quantity: item.quantity,
-            color: item.color || null,
-            size: item.size || null,
-            image: item.product.images?.[0] || 'https://picsum.photos/seed/placeholder/600/800'
-          })),
-          shippingAddress,
-          shippingMethod: deliveryMethod,
-          paymentMethod: deliveryMethod === 'store' ? 'store_payment' : 'cash',
-          email,
-          orderNotes: orderNotes || null,
-          giftOptions: isGift ? {
-            giftMessage: giftMessage || null,
-            giftCost: giftCost
-          } : null,
-          createdAt: serverTimestamp()
-        });
-        setOrderId(easyOrderId);
-      } else {
-        setOrderId(easyOrderId);
+      await setDoc(doc(db, 'orders', easyOrderId), {
+        userId: user ? user.id : 'guest',
+        status: 'pending',
+        totalAmount: finalTotal,
+        items: items.map(item => ({
+          productId: item.product.id,
+          name: item.product.name,
+          price: item.product.price,
+          quantity: item.quantity,
+          color: item.color || null,
+          size: item.size || null,
+          image: item.product.images?.[0] || 'https://picsum.photos/seed/placeholder/600/800'
+        })),
+        shippingAddress,
+        shippingMethod: deliveryMethod,
+        paymentMethod: deliveryMethod === 'store' ? 'store_payment' : 'cash',
+        email,
+        newsletterOptIn,
+        orderNotes: orderNotes || null,
+        giftOptions: isGift ? {
+          giftMessage: giftMessage || null,
+          giftCost: giftCost
+        } : null,
+        createdAt: serverTimestamp()
+      });
+      setOrderId(easyOrderId);
+
+      if (newsletterOptIn && email) {
+        try {
+          await setDoc(doc(db, 'subscribers', email.toLowerCase()), {
+            email: email.toLowerCase(),
+            source: 'checkout',
+            createdAt: serverTimestamp()
+          }, { merge: true });
+        } catch (subErr) {
+          console.error("Failed to save subscriber", subErr);
+        }
       }
+
+      // Try to trigger the email system (simulation or real if SMTP variables are configured)
+      fetch('/api/send-order-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerEmail: email,
+          customerName: `${shippingAddress.firstName} ${shippingAddress.lastName}`,
+          orderId: easyOrderId,
+          adminEmail: 'logique900@gmail.com', // En production, on peut récupérer ça depuis les settings
+          totalAmount: finalTotal,
+          items: items.map(item => ({ name: item.product.name, price: item.product.price, quantity: item.quantity })),
+          shippingAddress,
+          paymentMethod: deliveryMethod === 'store' ? 'store_payment' : 'cash',
+          deliveryMethod
+        })
+      }).then(async res => {
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || 'Erreur inconnue lors de l\'envoi de l\'email');
+          }
+          return data;
+      }).then(data => {
+          if (data.mock) {
+            toast.warning("L'équipe a été notifiée (mode simulation).");
+          } else {
+            toast.success("Votre commande a bien été transmise à notre équipe !");
+          }
+      })
+      .catch(err => toast.error("Erreur serveur lors de la notification: " + String(err.message)));
+
       setIsSuccess(true);
       if (clearCart) clearCart();
       window.scrollTo({ top: 0 });
     } catch (err) {
       console.error(err);
-      alert("Une erreur est survenue lors de la validation de la commande.");
+      toast.error("Une erreur est survenue lors de la validation de la commande.");
     } finally {
       setIsProcessing(false);
     }
@@ -214,7 +265,7 @@ export function CheckoutPage({ onNavigateHome, onNavigateToCart }: CheckoutPageP
                          <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-brand-200 focus:ring-brand-900 focus:border-brand-900 outline-none" placeholder="jean.dupont@exemple.com" required />
                        </div>
                        <div className="flex items-center gap-2">
-                         <input type="checkbox" id="newsletter" className="rounded text-brand-900 focus:ring-brand-900" />
+                         <input type="checkbox" id="newsletter" checked={newsletterOptIn} onChange={e => setNewsletterOptIn(e.target.checked)} className="rounded text-brand-900 focus:ring-brand-900" />
                          <label htmlFor="newsletter" className="text-sm text-brand-700">Je souhaite recevoir les offres exclusives par email.</label>
                        </div>
                        <button 
@@ -263,7 +314,8 @@ export function CheckoutPage({ onNavigateHome, onNavigateToCart }: CheckoutPageP
                                     firstName: addr.name.split(' ')[0], 
                                     lastName: addr.name.split(' ').slice(1).join(' '), 
                                     address1: addr.street, 
-                                    address2: '', city: addr.city, zipCode: addr.zip, country: addr.country, company: ''
+                                    address2: '', city: addr.city, zipCode: addr.zip, country: addr.country, company: '',
+                                    phone: addr.phone || ''
                                   });
                                 }} className="text-black focus:ring-black" />
                                 <div>
@@ -277,7 +329,17 @@ export function CheckoutPage({ onNavigateHome, onNavigateToCart }: CheckoutPageP
                             <div className="flex items-center gap-3">
                               <input type="radio" name="saved-address" checked={useCustomAddress} onChange={() => {
                                 setUseCustomAddress(true);
-                                setShippingAddress({firstName: user?.name.split(' ')[0] || '', lastName: user?.name.split(' ').slice(1).join(' ') || '', address1: '', address2: '', city: '', zipCode: '', country: 'France', company: ''});
+                                setShippingAddress({
+                                  firstName: user?.name.split(' ')[0] || '', 
+                                  lastName: user?.name.split(' ').slice(1).join(' ') || '', 
+                                  address1: '', 
+                                  address2: '', 
+                                  city: '', 
+                                  zipCode: '', 
+                                  country: 'Tunisie', 
+                                  company: '',
+                                  phone: ''
+                                });
                               }} className="text-black focus:ring-black" />
                               <span className="font-semibold text-gray-900">Nouvelle adresse</span>
                             </div>
@@ -314,6 +376,21 @@ export function CheckoutPage({ onNavigateHome, onNavigateToCart }: CheckoutPageP
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Ville *</label>
                             <input type="text" value={shippingAddress.city} onChange={e=>setShippingAddress({...shippingAddress, city: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-black" />
+                          </div>
+                          <div className="sm:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone *</label>
+                            <div className="relative">
+                              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">+216</span>
+                              <input 
+                                type="tel" 
+                                value={shippingAddress.phone.replace('+216', '')} 
+                                onChange={e=>setShippingAddress({...shippingAddress, phone: '+216' + e.target.value.replace(/\D/g, '')})} 
+                                className="w-full pl-16 pr-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-black" 
+                                placeholder="XX XXX XXX" 
+                                required
+                              />
+                            </div>
+                            <p className="text-[10px] text-gray-500 mt-1">Numéro obligatoire pour la confirmation de livraison et le suivi par SMS.</p>
                           </div>
                         </div>
                       )}
@@ -366,7 +443,7 @@ export function CheckoutPage({ onNavigateHome, onNavigateToCart }: CheckoutPageP
 
                     <div className="pt-4 flex justify-end">
                        <button 
-                         disabled={!shippingAddress.firstName || !shippingAddress.address1 || !shippingAddress.city || !shippingAddress.zipCode}
+                         disabled={!shippingAddress.firstName || !shippingAddress.address1 || !shippingAddress.city || !shippingAddress.zipCode || !shippingAddress.phone}
                          onClick={() => handleNextStep('payment')}
                          className="w-full sm:w-auto px-8 py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800 disabled:bg-gray-300 transition"
                        >
@@ -454,6 +531,7 @@ export function CheckoutPage({ onNavigateHome, onNavigateToCart }: CheckoutPageP
                                 <p className="font-semibold text-gray-900 mb-1 flex justify-between">Méthode & contact <button onClick={()=>setCurrentStep('delivery')} className="text-blue-600 text-xs hover:underline">Modifier</button></p>
                                 <p>{shippings[deliveryMethod].label}</p>
                                 <p>{email}</p>
+                                <p>{shippingAddress.phone}</p>
                              </div>
                           </div>
                           {isGift && giftMessage && (

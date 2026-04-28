@@ -4,6 +4,7 @@ import { db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
 import { Package, Truck, CheckCircle2, Clock, XCircle, ArrowRight, Download, RotateCcw, XSquare } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { toast } from '../lib/toast';
 
 export function OrderHistory({ onNavigateToProduct }: { onNavigateToProduct: (id: string) => void }) {
   const { user } = useAuth();
@@ -52,10 +53,10 @@ export function OrderHistory({ onNavigateToProduct }: { onNavigateToProduct: (id
         if (selectedOrder?.id === orderId) {
           setSelectedOrder({ ...selectedOrder, status: 'cancelled' });
         }
-        window.dispatchEvent(new CustomEvent('toast', { detail: 'Commande annulée avec succès' }));
+        toast.success('Commande annulée avec succès');
       } catch (err) {
         console.error("Failed to cancel order:", err);
-        alert("Erreur lors de l'annulation.");
+        toast.error("Erreur lors de l'annulation.");
       }
     }
   };
@@ -201,6 +202,7 @@ export function OrderHistory({ onNavigateToProduct }: { onNavigateToProduct: (id
                         <p className="font-medium text-brand-900">{selectedOrder.shippingAddress.firstName} {selectedOrder.shippingAddress.lastName}</p>
                         <p className="text-brand-600">{selectedOrder.shippingAddress.address1}</p>
                         <p className="text-brand-600">{selectedOrder.shippingAddress.zipCode} {selectedOrder.shippingAddress.city}</p>
+                        <p className="text-brand-600 mt-1">{selectedOrder.shippingAddress.phone}</p>
                       </div>
                     )}
                   </div>

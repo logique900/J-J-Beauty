@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../lib/firebase';
-import { doc, getDoc, updateDoc, collection, getDocs, addDoc, deleteDoc, query, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, getDocs, addDoc, deleteDoc, query, onSnapshot, where } from 'firebase/firestore';
 import { 
   User, MapPin, CreditCard, Bell, Clock, ShieldAlert, 
-  LogOut, Edit2, Plus, Trash2, CheckCircle2, Package, Truck, Check, XCircle
+  LogOut, Edit2, Plus, Trash2, CheckCircle2, Package, Truck, Check, XCircle, Fingerprint
 } from 'lucide-react';
 import { OrderHistory } from './OrderHistory';
 import { Product } from '../types';
+import { useBiometrics } from '../hooks/useBiometrics';
+import { toast } from '../lib/toast';
 
 interface AccountPageProps {
   onNavigateHome: () => void;
@@ -84,10 +86,10 @@ export function AccountPage({ onNavigateHome, onNavigateToProduct, onNavigateToA
         name: `${firstName} ${lastName}`.trim(),
         phone: phone
       });
-      window.dispatchEvent(new CustomEvent('toast', { detail: 'Profil mis à jour' }));
+      toast.success('Profil mis à jour');
     } catch (err) {
       console.error(err);
-      alert('Erreur lors de la mise à jour');
+      toast.error('Erreur lors de la mise à jour');
     } finally {
       setIsProcessing(false);
     }
@@ -106,7 +108,7 @@ export function AccountPage({ onNavigateHome, onNavigateToProduct, onNavigateToA
       setNewAddress({ label: '', name: '', street: '', city: '', zip: '', country: 'France', phone: '', isDefault: false });
     } catch (error) {
       console.error(error);
-      alert("Erreur lors de l'ajout de l'adresse.");
+      toast.error("Erreur lors de l'ajout de l'adresse.");
     } finally {
       setIsProcessing(false);
     }
@@ -130,6 +132,54 @@ export function AccountPage({ onNavigateHome, onNavigateToProduct, onNavigateToA
 
   const [history, setHistory] = useState(allProducts.slice(0, 4));
 
+  const { isSupported, checkSupport, registerBiometrics } = useBiometrics();
+  const [passkeys, setPasskeys] = useState<any[]>([]);
+
+  useEffect(() => {
+    checkSupport();
+  }, [checkSupport]);
+
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, 'passkeys'), where('userId', '==', user.id));
+    const unsub = onSnapshot(q, (snap) => {
+      setPasskeys(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return () => unsub();
+  }, [user]);
+
+  const handleRegisterPasskey = async () => {
+    if (!user) return;
+    setIsProcessing(true);
+    try {
+      const regObj = await registerBiometrics(user.id, user.email);
+      if (regObj) {
+        await addDoc(collection(db, 'passkeys'), {
+          ...regObj,
+          userId: user.id,
+          email: user.email,
+          createdAt: new Date(),
+          deviceName: navigator.userAgent.split(')')[0].split('(')[1] || 'Appareil actuel'
+        });
+        toast.success('Biométrie enregistrée !');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Erreur lors de l\'enregistrement biométrique');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDeletePasskey = async (id: string) => {
+    if (window.confirm("Supprimer cet accès biométrique ?")) {
+      try {
+        await deleteDoc(doc(db, 'passkeys', id));
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
   const tabs = [
     { id: 'info', label: 'Mes informations', icon: User },
     { id: 'orders', label: 'Mes commandes', icon: Package },
@@ -153,7 +203,7 @@ export function AccountPage({ onNavigateHome, onNavigateToProduct, onNavigateToA
     if (window.confirm("Êtes-vous sûr de vouloir supprimer votre compte ? Un délai de 30 jours sera appliqué avant la suppression définitive (conformité RGPD).")) {
       logout();
       onNavigateHome();
-      window.dispatchEvent(new CustomEvent('toast', { detail: 'Votre compte sera supprimé dans 30 jours.' }));
+      toast.success('Votre compte sera supprimé dans 30 jours.');
     }
   };
 
@@ -401,10 +451,59 @@ export function AccountPage({ onNavigateHome, onNavigateToProduct, onNavigateToA
             )}
 
             {activeTab === 'security' && (
-              <div className="max-w-2xl">
-                <h2 className="text-2xl font-bold text-brand-900 mb-6">Sécurité du compte</h2>
-                <div className="p-6 border border-red-200 bg-red-50 rounded-2xl">
-                  <h3 className="text-lg font-bold text-red-700 mb-2">Zone de danger</h3>
+              <div className="max-w-2xl space-y-8">
+                <div>
+                  <h2 className="text-2xl font-serif font-bold text-brand-900 mb-2">Sécurité du compte</h2>
+                  <p className="text-brand-500 text-sm mb-6">Gérez vos méthodes d'authentification et la sécurité de votre compte.</p>
+                </div>
+
+                <div className="p-6 border border-brand-100 rounded-2xl bg-white shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-brand-50 text-brand-900 rounded-lg">
+                        <Fingerprint className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-brand-900">Authentification biométrique</h3>
+                        <p className="text-xs text-brand-500">Utilisez Touch ID, Face ID ou Windows Hello pour vous connecter.</p>
+                      </div>
+                    </div>
+                    {isSupported ? (
+                      <button 
+                        onClick={handleRegisterPasskey}
+                        disabled={isProcessing}
+                        className="px-4 py-2 bg-brand-900 text-white text-sm font-bold rounded-xl hover:bg-brand-950 transition disabled:opacity-50"
+                      >
+                        Enregistrer cet appareil
+                      </button>
+                    ) : (
+                      <span className="text-xs font-medium text-red-500 bg-red-50 px-2 py-1 rounded">Non supporté</span>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    {passkeys.map(pk => (
+                      <div key={pk.id} className="flex items-center justify-between p-3 bg-brand-50 rounded-xl border border-brand-100">
+                        <div className="flex items-center gap-3">
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                          <div>
+                            <p className="text-sm font-medium text-brand-900">{pk.deviceName}</p>
+                            <p className="text-[10px] text-brand-500 italic">Enregistré le {pk.createdAt?.toDate ? pk.createdAt.toDate().toLocaleDateString() : 'N/A'}</p>
+                          </div>
+                        </div>
+                        <button onClick={() => handleDeletePasskey(pk.id)} className="p-1.5 text-brand-400 hover:text-red-500 transition">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                    {passkeys.length === 0 && (
+                      <p className="text-xs text-center text-brand-400 py-4">Aucun appareil enregistré pour la biométrie.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-6 border border-red-100 bg-red-50/30 rounded-2xl">
+                  <h3 className="text-lg font-bold text-red-700 mb-2 font-serif">Zone de danger</h3>
                   <p className="text-sm text-red-600 mb-6">
                     La suppression de votre compte est irréversible. Un délai de 30 jours (RGPD) est appliqué 
                     durant lequel vous pourrez annuler cette demande. Toutes vos données seront effacées après 

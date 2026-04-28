@@ -12,7 +12,16 @@ interface FilterSidebarProps {
   allProducts?: Product[];
 }
 
-export function FilterSidebar({ isOpen, onClose, filters, setFilters, totalResults, allProducts = [] }: FilterSidebarProps) {
+export function FilterSidebar({ 
+  isOpen, 
+  onClose, 
+  filters, 
+  setFilters, 
+  totalResults, 
+  allProducts = [],
+  allBrands = [],
+  allCategories = []
+}: FilterSidebarProps & { allBrands?: any[], allCategories?: any[] }) {
   // Extract all available colors and sizes from allProducts
   const availableSizes = useMemo(() => {
     const sizes = new Set<string>();
@@ -32,6 +41,15 @@ export function FilterSidebar({ isOpen, onClose, filters, setFilters, totalResul
       brands: prev.brands.includes(brandName) 
         ? prev.brands.filter(b => b !== brandName)
         : [...prev.brands, brandName]
+    }));
+  };
+
+  const handleCollectionToggle = (colId: string) => {
+    setFilters(prev => ({
+      ...prev,
+      collections: prev.collections.includes(colId)
+        ? prev.collections.filter(id => id !== colId)
+        : [...prev.collections, colId]
     }));
   };
 
@@ -89,7 +107,6 @@ export function FilterSidebar({ isOpen, onClose, filters, setFilters, totalResul
               <div className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors bg-gray-200">
                 <input type="checkbox" className="sr-only" checked={filters.inStock} onChange={(e) => setFilters(prev => ({ ...prev, inStock: e.target.checked }))}/>
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${filters.inStock ? 'translate-x-6 bg-black' : 'translate-x-1'}`} />
-                {/* Visual wrap for custom switch */}
                 <div className={`absolute inset-0 rounded-full transition-colors ${filters.inStock ? 'bg-black' : 'bg-gray-200'}`} />
                 <span className={`absolute h-4 w-4 transform rounded-full bg-white transition-transform ${filters.inStock ? 'translate-x-6' : 'translate-x-1'}`} />
               </div>
@@ -137,7 +154,6 @@ export function FilterSidebar({ isOpen, onClose, filters, setFilters, totalResul
                 />
               </div>
             </div>
-            {/* Simple range slider native */}
             <input 
                type="range" 
                min="0" max="500" 
@@ -151,18 +167,44 @@ export function FilterSidebar({ isOpen, onClose, filters, setFilters, totalResul
           <div className="border-t border-gray-100 pt-6">
             <h3 className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wider">Marques</h3>
             <div className="space-y-3">
-              {mockBrands.map(brand => (
+              {(allBrands.length > 0 ? allBrands : mockBrands).map(brand => (
                 <label key={brand.id} className="flex items-center group cursor-pointer">
                   <div className={`w-5 h-5 rounded border flex items-center justify-center mr-3 transition-colors ${
-                    filters.brands.includes(brand.name) ? 'bg-black border-black text-white' : 'border-gray-300 group-hover:border-black'
+                    filters.brands.includes(brand.name) ? 'bg-brand-900 border-brand-900 text-white' : 'border-gray-300 group-hover:border-brand-900'
                   }`}>
                     {filters.brands.includes(brand.name) && <Check className="w-3 h-3" />}
                   </div>
-                  <span className="text-sm text-gray-700 group-hover:text-black">{brand.name}</span>
+                  <span className="text-sm text-gray-700 group-hover:text-brand-900 font-medium transition-colors">{brand.name}</span>
                 </label>
               ))}
             </div>
           </div>
+
+          {/* Collections / Subcategories */}
+          {allCategories.length > 0 && (
+            <div className="border-t border-gray-100 pt-6">
+              <h3 className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wider">Collections</h3>
+              <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                {allCategories.map(cat => (
+                  <div key={cat.id} className="space-y-2">
+                    <p className="text-[10px] font-bold text-brand-400 uppercase tracking-widest">{cat.name}</p>
+                    <div className="space-y-2 pl-2">
+                      {cat.collections?.map((col: any) => (
+                        <label key={col.id} className="flex items-center group cursor-pointer">
+                           <div className={`w-4 h-4 rounded border flex items-center justify-center mr-3 transition-colors ${
+                            filters.collections.includes(col.id) ? 'bg-brand-900 border-brand-900 text-white' : 'border-gray-300 group-hover:border-brand-900'
+                          }`}>
+                            {filters.collections.includes(col.id) && <Check className="w-2.5 h-2.5" />}
+                          </div>
+                          <span className="text-sm text-gray-600 group-hover:text-brand-900 transition-colors">{col.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Sizes */}
           <div className="border-t border-gray-100 pt-6">
@@ -250,7 +292,7 @@ export function FilterSidebar({ isOpen, onClose, filters, setFilters, totalResul
         <div className="lg:hidden absolute bottom-0 left-0 w-full p-4 bg-white border-t border-gray-100 flex gap-3">
           <button 
             type="button" 
-            onClick={() => setFilters({ priceMin: 0, priceMax: 1000, brands: [], sizes: [], colors: [], inStock: false, onSale: false, minRating: 0 })}
+            onClick={() => setFilters({ priceMin: 0, priceMax: 1000, brands: [], sizes: [], colors: [], collections: [], inStock: false, onSale: false, minRating: 0 })}
             className="px-4 py-3 text-sm font-semibold text-gray-700 bg-gray-100 rounded-xl w-1/3"
           >
             Effacer
