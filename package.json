@@ -4,11 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx server.ts",
+    "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview",
+    "preview": "vite preview --host 0.0.0.0 --port ${PORT:-4173}",
+    "start": "vite preview --host 0.0.0.0 --port ${PORT:-10000}",
     "clean": "rm -rf dist",
-    "start": "node server.ts",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
@@ -20,7 +20,6 @@
     "firebase": "^12.12.0",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
-    "nodemailer": "^8.0.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^3.8.1",
@@ -30,7 +29,6 @@
     "@firebase/eslint-plugin-security-rules": "^0.0.1",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
-    "@types/nodemailer": "^8.0.0",
     "autoprefixer": "^10.4.21",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
