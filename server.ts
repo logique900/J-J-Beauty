@@ -34,7 +34,7 @@ async function startServer() {
 
   const getFromEmail = () => process.env.SMTP_FROM || `"Boutique" <${process.env.SMTP_USER}>`;
 
-  const handleError = (res: express.Response, error: any) => {
+  const handleError = (res, error) => {
     console.error('Erreur SMTP:', error);
     let errorMessage = String(error.message || error);
     if (errorMessage.includes('Unexpected socket close')) {
@@ -66,7 +66,7 @@ async function startServer() {
       const fromEmail = getFromEmail();
 
       // Format items
-      const itemsHtml = items ? items.map((i: any) => `<li>${i.quantity}x ${i.name} (${i.price} DT/u) = ${i.quantity * i.price} DT</li>`).join('') : '';
+      const itemsHtml = items ? items.map((i) => `<li>${i.quantity}x ${i.name} (${i.price} DT/u) = ${i.quantity * i.price} DT</li>`).join('') : '';
 
       // Envoi à l'administrateur (Admin Notification) en arrière-plan
       transporter.sendMail({
@@ -94,7 +94,7 @@ async function startServer() {
       });
       
       res.json({ success: true, message: "La requête a bien été prise en compte." });
-    } catch (error: any) {
+    } catch (error) {
       handleError(res, error);
     }
   });
