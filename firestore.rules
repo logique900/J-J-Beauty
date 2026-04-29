@@ -290,7 +290,7 @@ service cloud.firestore {
 
     match /passkeys/{passkeyId} {
       allow get: if true;
-      allow list: if isAdmin();
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       
       allow create: if isSignedIn() && 
         isValidPasskey(incoming()) && 

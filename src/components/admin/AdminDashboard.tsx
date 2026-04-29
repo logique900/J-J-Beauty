@@ -63,7 +63,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
-  const [kpiStats, setKpiStats] = useState({ revenue: 0, ordersCount: 0, avgCart: 0 });
+  const [kpiStats, setKpiStats] = useState({ revenue: 0, ordersCount: 0, avgCart: 0, uniqueVisitors: 0 });
   const [dbLoading, setDbLoading] = useState(true);
   const [adminAlerts, setAdminAlerts] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -112,11 +112,12 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
         // Simple aggregations for demo 
         const totalRev = orders.reduce((acc: number, cur: any) => acc + (cur.totalAmount || 0), 0);
         const count = orders.length;
-        setKpiStats({
+        setKpiStats(prev => ({
+          ...prev,
           revenue: totalRev,
           ordersCount: count,
           avgCart: count > 0 ? totalRev / count : 0
-        });
+        }));
         setDbLoading(false);
       } catch (err: any) {
         console.error("Dashboard data processing error:", err);
@@ -133,7 +134,28 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
       setDbLoading(false);
     });
 
-    return () => unsubscribe();
+    const unsubscribeVisits = onSnapshot(collection(db, 'visits'), (snap) => {
+      try {
+        const visitorIds = new Set();
+        snap.docs.forEach(doc => {
+          const data = doc.data();
+          const id = data.userId || data.anonymousId;
+          if (id) visitorIds.add(id);
+        });
+        const cnt = visitorIds.size;
+        setKpiStats(prev => ({
+           ...prev,
+           uniqueVisitors: cnt
+        }));
+      } catch (err) {
+        console.error("Error reading visitors:", err);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeVisits();
+    };
   }, [isAdmin]);
 
   if (authLoading) {
@@ -234,7 +256,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
               <KpiCard title="Revenus" value={`${kpiStats.revenue.toFixed(2)} DT`} trend="+12.5%" isPositive={true} icon={<TrendingUp className="w-5 h-5 text-brand-700" />} />
               <KpiCard title="Commandes" value={kpiStats.ordersCount.toString()} trend="+5.2%" isPositive={true} icon={<ShoppingCart className="w-5 h-5 text-brand-700" />} />
               <KpiCard title="Panier Moyen" value={`${kpiStats.avgCart.toFixed(2)} DT`} trend="-1.2%" isPositive={false} icon={<Package className="w-5 h-5 text-brand-700" />} />
-              <KpiCard title="Visiteurs Uniques" value="12 400" trend="+18.4%" isPositive={true} icon={<Users className="w-5 h-5 text-brand-700" />} />
+              <KpiCard title="Visiteurs Uniques" value={kpiStats.uniqueVisitors.toLocaleString()} trend="+18.4%" isPositive={true} icon={<Users className="w-5 h-5 text-brand-700" />} />
             </div>
 
             {/* Charts Row */}

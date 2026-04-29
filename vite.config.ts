@@ -5,8 +5,7 @@ import { defineConfig, loadEnv } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '');
-
+  const env = loadEnv(mode, '.', '');
   return {
     plugins: [
       react(),
@@ -46,7 +45,7 @@ export default defineConfig(({ mode }) => {
                 cacheName: 'unsplash-images',
                 expiration: {
                   maxEntries: 50,
-                  maxAgeSeconds: 60 * 60 * 24 * 30 // 30 Jours
+                  maxAgeSeconds: 60 * 60 * 24 * 30 // 30 Days
                 },
                 cacheableResponse: {
                   statuses: [0, 200]
@@ -54,10 +53,14 @@ export default defineConfig(({ mode }) => {
               }
             },
             {
-              urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-              handler: 'StaleWhileRevalidate',
+              urlPattern: /^https:\/\/picsum\.photos\/.*/i,
+              handler: 'CacheFirst',
               options: {
-                cacheName: 'google-fonts-stylesheets'
+                cacheName: 'picsum-images',
+                expiration: {
+                  maxEntries: 20,
+                  maxAgeSeconds: 60 * 60 * 24 * 7 // 7 Days
+                }
               }
             }
           ]
@@ -65,24 +68,17 @@ export default defineConfig(({ mode }) => {
       })
     ],
     define: {
-      'process.env': env, // Plus propre pour accéder à toutes vos variables
+      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
     },
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, './src'),
+        '@': path.resolve(__dirname, '.'),
       },
     },
     server: {
-      // Configuration vitale pour Render et le développement local
-      host: '0.0.0.0',
-      port: Number(process.env.PORT) || 5173,
+      // HMR is disabled in AI Studio via DISABLE_HMR env var.
+      // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
-      allowedHosts: true 
     },
-    preview: {
-      // Utilisé par Render lors du déploiement de build
-      host: '0.0.0.0',
-      port: Number(process.env.PORT) || 10000,
-    }
   };
 });

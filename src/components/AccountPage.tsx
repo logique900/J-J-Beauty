@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../lib/firebase';
-import { doc, getDoc, updateDoc, collection, getDocs, addDoc, deleteDoc, query, onSnapshot, where } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, getDocs, addDoc, deleteDoc, query, onSnapshot, where, serverTimestamp } from 'firebase/firestore';
 import { 
   User, MapPin, CreditCard, Bell, Clock, ShieldAlert, 
   LogOut, Edit2, Plus, Trash2, CheckCircle2, Package, Truck, Check, XCircle, Fingerprint
@@ -102,7 +102,7 @@ export function AccountPage({ onNavigateHome, onNavigateToProduct, onNavigateToA
     try {
       await addDoc(collection(db, `users/${user.id}/addresses`), {
         ...newAddress,
-        createdAt: new Date()
+        createdAt: serverTimestamp()
       });
       setIsAddingAddress(false);
       setNewAddress({ label: '', name: '', street: '', city: '', zip: '', country: 'France', phone: '', isDefault: false });
@@ -158,7 +158,7 @@ export function AccountPage({ onNavigateHome, onNavigateToProduct, onNavigateToA
           ...regObj,
           userId: user.id,
           email: user.email,
-          createdAt: new Date(),
+          createdAt: serverTimestamp(),
           deviceName: navigator.userAgent.split(')')[0].split('(')[1] || 'Appareil actuel'
         });
         toast.success('Biométrie enregistrée !');
@@ -184,7 +184,6 @@ export function AccountPage({ onNavigateHome, onNavigateToProduct, onNavigateToA
     { id: 'info', label: 'Mes informations', icon: User },
     { id: 'orders', label: 'Mes commandes', icon: Package },
     { id: 'addresses', label: 'Mes adresses', icon: MapPin },
-    { id: 'payments', label: 'Moyens de paiement', icon: CreditCard },
     { id: 'preferences', label: 'Préférences', icon: Bell },
     { id: 'history', label: 'Historique de navigation', icon: Clock },
     { id: 'security', label: 'Sécurité & Confidentialité', icon: ShieldAlert },
@@ -363,40 +362,6 @@ export function AccountPage({ onNavigateHome, onNavigateToProduct, onNavigateToA
                     )}
                   </div>
                 )}
-              </div>
-            )}
-
-            {activeTab === 'payments' && (
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-serif font-bold text-brand-900">Moyens de paiement</h2>
-                  <button className="text-sm font-bold text-brand-900 border border-brand-900 px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-brand-900 hover:text-white transition">
-                    <Plus className="w-4 h-4" /> Ajouter une carte
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {cards.map(card => (
-                    <div key={card.id} className={`border rounded-xl p-6 transition-all relative ${card.isDefault ? 'border-brand-900 bg-brand-50 dark:bg-brand-200' : 'border-brand-200 bg-white dark:bg-brand-50'}`}>
-                      {card.isDefault && <div className="absolute top-4 right-4 text-brand-900"><CheckCircle2 className="w-5 h-5" /></div>}
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="w-12 h-8 bg-white dark:bg-brand-100 border border-brand-200 rounded flex items-center justify-center font-bold italic text-blue-900 shadow-sm">{card.type}</div>
-                      </div>
-                      <div className="flex items-end justify-between font-mono">
-                        <div>
-                          <p className="text-xs text-brand-500 mb-1 uppercase tracking-wider">Numéro</p>
-                          <p className="text-lg text-brand-900 tracking-widest">•••• {card.last4}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs text-brand-500 mb-1 uppercase tracking-wider">Exp</p>
-                          <p className="text-base text-brand-900">{card.exp}</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-4 mt-6 text-sm">
-                        <button className="text-red-500 font-medium hover:text-red-700">Supprimer</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </div>
             )}
 
