@@ -178,16 +178,6 @@ export function AdminOrders() {
     document.body.removeChild(link);
   };
 
-  const handleStatusChange = async (newStatus: string) => {
-    if (!selectedOrder || !newStatus || newStatus === 'Changer le statut...') return;
-    try {
-      await updateDoc(doc(db, 'orders', selectedOrder.id), { status: newStatus });
-    } catch (err) {
-      console.error(err);
-      toast.error('Erreur lors de la mise à jour du statut.');
-    }
-  };
-
   if (loading) {
     return <div className="py-20 text-center text-brand-500">Chargement des commandes...</div>;
   }
