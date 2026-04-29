@@ -152,10 +152,12 @@ export function CheckoutPage({ onNavigateHome, onNavigateToCart }: CheckoutPageP
         })
       }).then(async res => {
           let data;
+          let textInfo = '';
           try {
-            data = await res.json();
+            textInfo = await res.text();
+            data = JSON.parse(textInfo);
           } catch (err) {
-            throw new Error('Erreur de communication avec le serveur d\'email (timeout ou erreur). Vérifiez vos paramètres SMTP.');
+            throw new Error(`Erreur serveur (${res.status}): la réponse n'est pas au format JSON. Réponse = ${textInfo.substring(0, 50)}...`);
           }
           if (!res.ok || !data.success) {
             throw new Error(data.error || 'Erreur inconnue lors de l\'envoi de l\'email');
