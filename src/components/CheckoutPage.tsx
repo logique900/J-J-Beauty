@@ -151,7 +151,12 @@ export function CheckoutPage({ onNavigateHome, onNavigateToCart }: CheckoutPageP
           deliveryMethod
         })
       }).then(async res => {
-          const data = await res.json();
+          let data;
+          try {
+            data = await res.json();
+          } catch (err) {
+            throw new Error('Erreur de communication avec le serveur d\'email (timeout ou erreur). Vérifiez vos paramètres SMTP.');
+          }
           if (!res.ok || !data.success) {
             throw new Error(data.error || 'Erreur inconnue lors de l\'envoi de l\'email');
           }

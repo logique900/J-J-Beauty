@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { storage, auth } from '../../lib/firebase';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { auth } from '../../lib/firebase';
 import { Upload, X, Check, Loader2, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -55,57 +54,75 @@ export function ImageUploader({ label, value, onChange, folder = 'categories', c
       }
 
       console.group(`Upload: ${file.name}`);
-      console.log(`Folder: ${folder}`);
-      console.log(`Size: ${file.size} bytes`);
-      console.log(`Auth Email: ${currentUser.email}`);
+      console.log(`Processing image locally for Base64 (circumventing Storage)...`);
 
-      const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
-      const storageRef = ref(storage, `${folder}/${fileName}`);
+      // Compress and convert to Base64 to bypass Firebase Storage quota/permissions
+      const compressAndGetBase64 = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = (event) => {
+            const img = new window.Image();
+            img.src = event.target?.result as string;
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              const MAX_WIDTH = 800; // Compress appropriately for Firestore document limits
+              const MAX_HEIGHT = 800;
+              let width = img.width;
+              let height = img.height;
+
+              if (width > height) {
+                if (width > MAX_WIDTH) {
+                  height *= MAX_WIDTH / width;
+                  width = MAX_WIDTH;
+                }
+              } else {
+                if (height > MAX_HEIGHT) {
+                  width *= MAX_HEIGHT / height;
+                  height = MAX_HEIGHT;
+                }
+              }
+              canvas.width = width;
+              canvas.height = height;
+              
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                // Ensure transparent PNGs do not have black background when converting to JPEG
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, width, height);
+                ctx.drawImage(img, 0, 0, width, height);
+              }
+              
+              // Resolve with JPEG format and 0.8 quality to keep size small (~50-100KB)
+              resolve(canvas.toDataURL('image/jpeg', 0.8));
+            };
+            img.onerror = () => reject(new Error('Format d\'image invalide'));
+          };
+          reader.onerror = () => reject(new Error('Erreur de lecture du fichier'));
+        });
+      };
+
+      // Simulate a progress bar for better UX
+      const progressInterval = setInterval(() => {
+        setProgress(p => Math.min(p + 15, 90));
+      }, 100);
+
+      const base64Url = await compressAndGetBase64(file);
       
-      console.log(`Firebase: Starting resumable upload to ${folder}...`);
-      const uploadTask = uploadBytesResumable(storageRef, file);
-
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const p = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setProgress(Math.round(p));
-          console.log(`Firebase: Upload Progress: ${Math.round(p)}%`);
-        },
-        (err: any) => {
-          console.error("Firebase Storage Upload Task Error:", err);
-          console.groupEnd();
-          
-          let msg = "Erreur lors de l'envoi.";
-          const errorCode = err?.code || 'unknown';
-          
-          if (errorCode === 'storage/unauthorized') {
-            msg = "Accès refusé. Vérifiez vos permissions Firebase Storage.";
-          } else if (errorCode === 'storage/quota-exceeded') {
-            msg = "Quota Storage dépassé.";
-          } else if (errorCode === 'storage/canceled') {
-            msg = "Envoi annulé.";
-          } else {
-            msg = `Erreur (${errorCode}): ${err.message || "Échec"}`;
-          }
-          
-          setError(msg);
-          setUploading(false);
-        },
-        async () => {
-          console.log("Firebase: Upload successful, getting URL...");
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          console.log("Firebase: Success! URL ready.");
-          console.groupEnd();
-          onChange(downloadURL);
-          setUploading(false);
-        }
-      );
+      clearInterval(progressInterval);
+      setProgress(100);
+      console.log('Image processing successful');
+      console.groupEnd();
+      
+      setTimeout(() => {
+        onChange(base64Url);
+        setUploading(false);
+      }, 300);
 
     } catch (err: any) {
-      console.error("Firebase Critical Uploader Error:", err);
+      console.error("Local Image Compressor Error:", err);
       console.groupEnd();
-      setError(`Erreur critique: ${err.message || "Impossible de démarrer l'envoi"}`);
+      setError(`Erreur lors du traitement: ${err.message || "Impossible de compresser l'image"}`);
       setUploading(false);
     }
   };

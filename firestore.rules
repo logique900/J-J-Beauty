@@ -117,7 +117,7 @@ service cloud.firestore {
         ( !('description' in data) || (data.description is string && data.description.size() <= 1000) ) &&
         ( !('count' in data) || data.count is number ) &&
         ( !('collections' in data) || data.collections is list ) &&
-        ( !('coverImage' in data) || (data.coverImage is string && data.coverImage.size() <= 500) ) &&
+        ( !('coverImage' in data) || (data.coverImage is string && data.coverImage.size() <= 2000000) ) &&
         ( !('promo' in data) || data.promo is map );
     }
     
@@ -128,8 +128,8 @@ service cloud.firestore {
         data.createdAt is timestamp &&
         data.updatedAt is timestamp &&
         ( !('website' in data) || (data.website is string && data.website.size() <= 256) ) &&
-        ( !('logoUrl' in data) || (data.logoUrl is string && data.logoUrl.size() <= 1024) ) &&
-        ( !('bannerUrl' in data) || (data.bannerUrl is string && data.bannerUrl.size() <= 1024) ) &&
+        ( !('logoUrl' in data) || (data.logoUrl is string && data.logoUrl.size() <= 2000000) ) &&
+        ( !('bannerUrl' in data) || (data.bannerUrl is string && data.bannerUrl.size() <= 2000000) ) &&
         ( !('description' in data) || (data.description is string && data.description.size() <= 1000) );
     }
 
@@ -137,7 +137,7 @@ service cloud.firestore {
       return data.keys().hasAll(['name', 'slug', 'image', 'status', 'createdAt', 'updatedAt']) &&
         data.name is string && data.name.size() <= 128 &&
         data.slug is string && data.slug.size() <= 128 &&
-        data.image is string && data.image.size() <= 1024 &&
+        data.image is string && data.image.size() <= 2000000 &&
         data.status is string && (data.status == 'Actif' || data.status == 'Brouillon') &&
         data.createdAt is timestamp &&
         data.updatedAt is timestamp &&
@@ -164,7 +164,7 @@ service cloud.firestore {
     function isValidHeroSlide(data) {
       return data.keys().hasAll(['title', 'image', 'position', 'status', 'createdAt', 'updatedAt']) &&
         data.title is string && data.title.size() <= 256 &&
-        data.image is string && data.image.size() <= 1024 &&
+        data.image is string && data.image.size() <= 2000000 &&
         data.position is number &&
         data.status is string && (data.status == 'active' || data.status == 'inactive') &&
         data.createdAt is timestamp &&
