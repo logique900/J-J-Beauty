@@ -69,31 +69,33 @@ async function startServer() {
       const itemsHtml = items ? items.map((i) => `<li>${i.quantity}x ${i.name} (${i.price} DT/u) = ${i.quantity * i.price} DT</li>`).join('') : '';
 
       // Envoi à l'administrateur (Admin Notification) en arrière-plan
-      transporter.sendMail({
-        from: fromEmail, 
-        to: adminEmail,
-        subject: `🚨 Nouvelle Commande reçue #${orderId} - (${totalAmount} DT)`,
-        html: `
-          <h1>Nouvelle Commande à traiter</h1>
-          <p><strong>Réf:</strong> #${orderId}</p>
-          <p><strong>Client:</strong> ${customerName} (${customerEmail})</p>
-          <p><strong>Téléphone:</strong> ${shippingAddress?.phone || 'N/A'}</p>
-          <p><strong>Adresse:</strong> ${shippingAddress?.address1}, ${shippingAddress?.city}, ${shippingAddress?.country}</p>
-          <p><strong>Livraison:</strong> ${deliveryMethod === 'delivery' ? 'À domicile' : 'En magasin'}</p>
-          <p><strong>Paiement:</strong> ${paymentMethod}</p>
-          <p><strong>Montant Total:</strong> ${totalAmount} DT</p>
-          <h3>Articles :</h3>
-          <ul>${itemsHtml}</ul>
-          <br />
-          <a href="${process.env.PUBLIC_URL || 'http://localhost:3000'}/admin">Gérer les commandes</a>
-        `
-      }).then(adminEmailResult => {
+      try {
+        const adminEmailResult = await transporter.sendMail({
+          from: fromEmail, 
+          to: adminEmail,
+          subject: `🚨 Nouvelle Commande reçue #${orderId} - (${totalAmount} DT)`,
+          html: `
+            <h1>Nouvelle Commande à traiter</h1>
+            <p><strong>Réf:</strong> #${orderId}</p>
+            <p><strong>Client:</strong> ${customerName} (${customerEmail})</p>
+            <p><strong>Téléphone:</strong> ${shippingAddress?.phone || 'N/A'}</p>
+            <p><strong>Adresse:</strong> ${shippingAddress?.address1}, ${shippingAddress?.city}, ${shippingAddress?.country}</p>
+            <p><strong>Livraison:</strong> ${deliveryMethod === 'delivery' ? 'À domicile' : 'En magasin'}</p>
+            <p><strong>Paiement:</strong> ${paymentMethod}</p>
+            <p><strong>Montant Total:</strong> ${totalAmount} DT</p>
+            <h3>Articles :</h3>
+            <ul>${itemsHtml}</ul>
+            <br />
+            <a href="${process.env.PUBLIC_URL || 'http://localhost:3000'}/admin">Gérer les commandes</a>
+          `
+        });
         console.log('Admin Email Result:', adminEmailResult.messageId);
-      }).catch(error => {
-        console.error('Erreur asynchrone lors de l\'envoi de la notification administrateur:', error);
-      });
-      
-      res.json({ success: true, message: "La requête a bien été prise en compte." });
+        res.json({ success: true, message: "La requête a bien été prise en compte et l'email a été envoyé." });
+      } catch (error) {
+        console.error('Erreur lors de l\'envoi de la notification administrateur:', error);
+        // On ne plante pas la commande pour autant
+        res.json({ success: true, message: "La commande a été créée mais l'email à l'admin a échoué.", warning: true });
+      }
     } catch (error) {
       handleError(res, error);
     }
@@ -111,19 +113,23 @@ async function startServer() {
 
       const transporter = getTransporter();
       
-      transporter.sendMail({
-        from: getFromEmail(),
-        to: customerEmail,
-        subject: `Confirmation de votre commande #${orderId}`,
-        html: `
-          <h1>Bonne nouvelle, ${customerName} !</h1>
-          <p>Votre commande <strong>#${orderId}</strong> d'un montant de <strong>${totalAmount} DT</strong> a été <strong>validée</strong> par notre équipe.</p>
-          <p>Nous préparons l'expédition. Vous la recevrez très prochainement !</p>
-        `
-      }).then(result => console.log('Confirm Email:', result.messageId))
-        .catch(err => console.error('Erreur email confirm:', err));
-
-      res.json({ success: true, message: "Requête prise en compte." });
+      try {
+        const result = await transporter.sendMail({
+          from: getFromEmail(),
+          to: customerEmail,
+          subject: `Confirmation de votre commande #${orderId}`,
+          html: `
+            <h1>Bonne nouvelle, ${customerName} !</h1>
+            <p>Votre commande <strong>#${orderId}</strong> d'un montant de <strong>${totalAmount} DT</strong> a été <strong>validée</strong> par notre équipe.</p>
+            <p>Nous préparons l'expédition. Vous la recevrez très prochainement !</p>
+          `
+        });
+        console.log('Confirm Email:', result.messageId);
+        res.json({ success: true, message: "Email envoyé avec succès." });
+      } catch (err) {
+        console.error('Erreur email confirm:', err);
+        res.json({ success: true, message: "Échec de l'envoi de l'email, mais requête gérée.", warning: true });
+      }
     } catch(error) {
       handleError(res, error);
     }
@@ -141,20 +147,24 @@ async function startServer() {
 
       const transporter = getTransporter();
       
-      transporter.sendMail({
-        from: getFromEmail(),
-        to: customerEmail,
-        subject: `Annulation de votre commande #${orderId}`,
-        html: `
-          <h1>Bonjour ${customerName},</h1>
-          <p>Nous sommes au regret de vous informer que votre commande <strong>#${orderId}</strong> a dû être annulée.</p>
-          ${reason ? `<p><strong>Motif:</strong> ${reason}</p>` : ''}
-          <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
-        `
-      }).then(result => console.log('Cancel Email:', result.messageId))
-        .catch(err => console.error('Erreur email cancel:', err));
-
-      res.json({ success: true, message: "Requête prise en compte." });
+      try {
+        const result = await transporter.sendMail({
+          from: getFromEmail(),
+          to: customerEmail,
+          subject: `Annulation de votre commande #${orderId}`,
+          html: `
+            <h1>Bonjour ${customerName},</h1>
+            <p>Nous sommes au regret de vous informer que votre commande <strong>#${orderId}</strong> a dû être annulée.</p>
+            ${reason ? `<p><strong>Motif:</strong> ${reason}</p>` : ''}
+            <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
+          `
+        });
+        console.log('Cancel Email:', result.messageId);
+        res.json({ success: true, message: "Email envoyé avec succès." });
+      } catch (err) {
+        console.error('Erreur email cancel:', err);
+        res.json({ success: true, message: "Échec de l'envoi de l'email, mais requête gérée.", warning: true });
+      }
     } catch(error) {
       handleError(res, error);
     }
