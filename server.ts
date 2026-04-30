@@ -20,9 +20,25 @@ async function startServer() {
     next();
   });
 
-  // Health check for platforms like Render
-  app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', port: PORT, env: process.env.NODE_ENV });
+  const distPath = process.env.NODE_ENV === 'production' 
+    ? path.resolve(__dirname) 
+    : path.join(process.cwd(), 'dist');
+
+  console.log(`[Server] Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`[Server] serving from: ${distPath}`);
+
+  // Create an API router
+  const apiRouter = express.Router();
+
+  // Health check
+  apiRouter.get('/health', (req, res) => {
+    res.json({ 
+      status: 'ok', 
+      port: PORT, 
+      env: process.env.NODE_ENV, 
+      time: new Date().toISOString(),
+      dist: distPath
+    });
   });
 
   // Helper to create transport
@@ -62,8 +78,8 @@ async function startServer() {
 
   // --- API ROUTES ---
   
-  // Endpoint to send order notification emails (to Admin only on checkout)
-  app.post('/api/send-order-email', async (req, res) => {
+  apiRouter.post('/send-order-email', async (req, res) => {
+    console.log('[API] POST /send-order-email');
     try {
       const { customerEmail, customerName, orderId, adminEmail, totalAmount, items, shippingAddress, paymentMethod, deliveryMethod } = req.body;
       
@@ -117,7 +133,8 @@ async function startServer() {
   });
 
   // Endpoint to send confirmation mail to user
-  app.post('/api/send-order-confirmation', async (req, res) => {
+  apiRouter.post('/send-order-confirmation', async (req, res) => {
+    console.log('[API] POST /send-order-confirmation');
     try {
       const { customerEmail, customerName, orderId, totalAmount } = req.body;
       
@@ -151,7 +168,8 @@ async function startServer() {
   });
 
   // Endpoint to send cancellation mail to user
-  app.post('/api/send-order-cancellation', async (req, res) => {
+  apiRouter.post('/send-order-cancellation', async (req, res) => {
+    console.log('[API] POST /send-order-cancellation');
     try {
       const { customerEmail, customerName, orderId, reason } = req.body;
       
@@ -185,6 +203,9 @@ async function startServer() {
     }
   });
 
+  // Mount API router
+  app.use('/api', apiRouter);
+
   // --- VITE MIDDLEWARE ---
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
@@ -193,18 +214,31 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    // In production, we serve from the dist folder.
-    // If server.js is in dist/server.js, then the static files are in the same directory.
-    const distPath = path.resolve(__dirname);
-    console.log(`[Production] Serving static files from: ${distPath}`);
-    
+    // Serve static files
     app.use(express.static(distPath));
     
+    // SPA fallback
     app.get('*', (req, res) => {
       const indexPath = path.join(distPath, 'index.html');
-      res.sendFile(indexPath);
+      res.sendFile(indexPath, (err) => {
+        if (err) {
+          console.error('[SPA Fallback] Error sending index.html:', err);
+          res.status(404).send('Application build missing or incomplete. Please check dist/index.html');
+        }
+      });
     });
   }
+
+  // Final catch-all for anything missed (like POST to wrong routes)
+  app.use((req, res) => {
+    console.log(`[404] ${req.method} ${req.url} not matched by any route`);
+    res.status(404).json({ 
+      error: 'Not Found', 
+      path: req.url, 
+      method: req.method,
+      message: 'The requested resource was not found on this server.'
+    });
+  });
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://0.0.0.0:${PORT}`);
