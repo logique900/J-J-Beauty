@@ -14,6 +14,17 @@ async function startServer() {
   // Middleware to parse JSON
   app.use(express.json());
 
+  // Logging middleware for production debugging
+  app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    next();
+  });
+
+  // Health check for platforms like Render
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', port: PORT, env: process.env.NODE_ENV });
+  });
+
   // Helper to create transport
   const getTransporter = () => {
     const port = Number(process.env.SMTP_PORT) || 587;
@@ -182,13 +193,16 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    // When running from dist/server.js, __dirname is the dist folder
-    const distPath = path.resolve(__dirname); 
+    // In production, we serve from the dist folder.
+    // If server.js is in dist/server.js, then the static files are in the same directory.
+    const distPath = path.resolve(__dirname);
     console.log(`[Production] Serving static files from: ${distPath}`);
+    
     app.use(express.static(distPath));
     
     app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      const indexPath = path.join(distPath, 'index.html');
+      res.sendFile(indexPath);
     });
   }
 
