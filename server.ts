@@ -45,30 +45,34 @@ async function startServer() {
   // --- API ROUTES ---
 
   apiRouter.post('/notifications/admin-order', async (req, res) => {
-    const { orderId, amount, customerName, adminEmail } = req.body;
+    const { orderId, amount, customerName, adminEmail, senderEmail } = req.body;
     
-    console.log(`[Notification] Order ${orderId} received. Attempting to notify ${adminEmail}`);
+    const fromEmail = senderEmail || 'onboarding@resend.dev';
+    const finalFrom = fromEmail.includes('<') ? fromEmail : `J&J Beauty <${fromEmail}>`;
+    const finalTo = adminEmail || 'logique900@gmail.com';
+
+    console.log(`[Notification] Order ${orderId}: Notifying ${finalTo} from ${finalFrom}`);
 
     const resendKey = process.env.RESEND_API_KEY;
     
     if (!resendKey) {
-      console.warn('[Notification] RESEND_API_KEY is missing. Falling back to console simulation.');
-      console.log('\n======================================================');
-      console.log(`[SIMULATION EMAIL ADMIN] Nouvelle commande reçue !`);
-      console.log(`À: ${adminEmail || 'admin@jjbeauty.com'}`);
-      console.log(`Sujet: Nouvelle commande #${orderId}`);
-      console.log(`Corps: Une nouvelle commande a été passée par ${customerName}.`);
-      console.log(`Montant total: ${amount} DT.`);
-      console.log('======================================================\n');
-      return res.json({ success: true, message: 'Notification (mock) traitée (RESEND_API_KEY manquante)' });
+      console.warn('[Notification] RESEND_API_KEY is missing.');
+      return res.json({ success: true, message: 'Notification simulée (clé manquante)' });
+    }
+
+    const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    
+    if (!isValidEmail(finalTo)) {
+      console.warn(`[Notification] Invalid recipient email: ${finalTo}. Skipping.`);
+      return res.json({ success: true, message: "Email invalide, notification ignorée" });
     }
 
     try {
       const resend = new Resend(resendKey);
       const { data, error } = await resend.emails.send({
-        from: 'J&J Beauty <onboarding@resend.dev>', // Note: standard test sender, ideally updated with verified domain
-        to: [adminEmail || 'logique900@gmail.com'],
-        subject: `Nouvelle Commande Reçue - #${orderId}`,
+        from: finalFrom,
+        to: [finalTo],
+        subject: `Nouvelle Commande - #${orderId}`,
         html: `
           <div style="font-family: sans-serif; padding: 20px; color: #333;">
             <h1 style="color: #000;">Nouvelle commande sur J&J Beauty</h1>
@@ -79,20 +83,99 @@ async function startServer() {
               <p><strong>Client:</strong> ${customerName}</p>
               <p><strong>Montant Total:</strong> ${amount} DT</p>
             </div>
-            <p>Connectez-vous à votre interface administrateur pour voir les détails et traiter la commande.</p>
-            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-            <p style="font-size: 0.8em; color: #999;">Ceci est une notification automatique de votre boutique J&J Beauty.</p>
+            <p>Connectez-vous à votre interface administrateur.</p>
           </div>
         `
       });
 
       if (error) {
-        console.error('[Resend Error]', error);
-        return res.status(500).json({ success: false, error: error.message });
+        console.error('[Resend Admin Notification Error]', JSON.stringify(error, null, 2));
+        // If it's a validation error, it's often due to unverified sender or recipient in trial mode
+        return res.status(400).json({ success: false, error: error });
       }
 
-      console.log('[Notification] Email sent successfully:', data?.id);
-      res.json({ success: true, message: 'Email envoyé avec succès', id: data?.id });
+      console.log('[Notification] Admin email sent:', data?.id);
+      res.json({ success: true, message: 'Email envoyé', id: data?.id });
+    } catch (err) {
+      console.error('[Notification Hub Error]', err);
+      res.status(500).json({ success: false, error: 'Internal Server Error' });
+    }
+  });
+
+  apiRouter.post('/notifications/customer-status-update', async (req, res) => {
+    const { orderId, customerEmail, customerName, newStatus, trackingNumber, senderEmail } = req.body;
+    
+    const fromEmail = senderEmail || 'onboarding@resend.dev';
+    const finalFrom = fromEmail.includes('<') ? fromEmail : `J&J Beauty <${fromEmail}>`;
+
+    console.log(`[Notification] Status update order ${orderId} to ${newStatus} for ${customerEmail} from ${finalFrom}`);
+
+    const resendKey = process.env.RESEND_API_KEY;
+    
+    if (!resendKey) {
+      console.warn('[Notification] RESEND_API_KEY is missing.');
+      return res.json({ success: true, message: 'Notification client simulée' });
+    }
+
+    const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if (!customerEmail || !isValidEmail(customerEmail)) {
+      console.warn(`[Notification] Invalid customer email: ${customerEmail}. Skipping.`);
+      return res.json({ success: true, message: "Email client invalide, notification ignorée" });
+    }
+
+    try {
+      const resend = new Resend(resendKey);
+      
+      let statusMessage = "Votre commande est en cours de traitement.";
+      let statusColor = "#333";
+
+      switch (newStatus) {
+        case 'processing': 
+          statusMessage = "Nous préparons actuellement votre commande.";
+          statusColor = "#1e40af";
+          break;
+        case 'shipped':
+          statusMessage = "Votre commande a été expédiée !";
+          statusColor = "#ca8a04";
+          break;
+        case 'delivered':
+          statusMessage = "Votre commande a été livrée.";
+          statusColor = "#16a34a";
+          break;
+        case 'cancelled':
+          statusMessage = "Votre commande a été annulée.";
+          statusColor = "#dc2626";
+          break;
+        case 'refunded':
+          statusMessage = "Votre commande a été remboursée.";
+          statusColor = "#7c3aed";
+          break;
+      }
+
+      const { data, error } = await resend.emails.send({
+        from: finalFrom,
+        to: [customerEmail],
+        subject: `Mise à jour de votre commande #${orderId} - J&J Beauty`,
+        html: `
+          <div style="font-family: sans-serif; padding: 20px; color: #333;">
+            <h2>Mise à jour de votre commande #${orderId}</h2>
+            <p>Bonjour ${customerName},</p>
+            <div style="padding: 15px; background: #f0f0f0; border-left: 4px solid ${statusColor};">
+              <p><strong>Nouveau Statut :</strong> ${newStatus.toUpperCase()}</p>
+              <p>${statusMessage}</p>
+              ${trackingNumber ? `<p><strong>Numéro de suivi :</strong> ${trackingNumber}</p>` : ''}
+            </div>
+            <p>Merci de votre confiance.</p>
+          </div>
+        `
+      });
+
+      if (error) {
+        console.error('[Resend Customer Notification Error]', JSON.stringify(error, null, 2));
+        return res.status(400).json({ success: false, error: error });
+      }
+
+      res.json({ success: true, message: 'Email envoyé', id: data?.id });
     } catch (err) {
       console.error('[Notification Hub Error]', err);
       res.status(500).json({ success: false, error: 'Internal Server Error' });

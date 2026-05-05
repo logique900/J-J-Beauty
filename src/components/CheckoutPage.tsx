@@ -159,7 +159,8 @@ export function CheckoutPage({ onNavigateHome, onNavigateToCart }: CheckoutPageP
               orderId: easyOrderId,
               amount: finalTotal.toFixed(2),
               customerName: shippingAddress.firstName + ' ' + shippingAddress.lastName,
-              adminEmail
+              adminEmail,
+              senderEmail: settingsSnap.data().orderNotificationSenderEmail || 'onboarding@resend.dev'
             })
           });
 

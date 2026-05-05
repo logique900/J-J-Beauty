@@ -19,6 +19,7 @@ interface AppSettings {
   };
   maintenanceMode: boolean;
   orderNotificationEmail: string;
+  orderNotificationSenderEmail: string;
 }
 
 export function AdminSettings() {
@@ -32,7 +33,8 @@ export function AdminSettings() {
     promoBannerText: 'LIVRAISON GRATUITE À PARTIR DE 150 DT D\'ACHAT',
     socialLinks: { instagram: '', facebook: '', tiktok: '' },
     maintenanceMode: false,
-    orderNotificationEmail: 'admin@jjbeauty.com'
+    orderNotificationEmail: 'admin@jjbeauty.com',
+    orderNotificationSenderEmail: 'onboarding@resend.dev'
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -202,7 +204,24 @@ export function AdminSettings() {
                     placeholder="admin@boutique.com"
                   />
                 </div>
-                <p className="text-xs text-brand-500 mt-2">Cet email recevra une alerte à chaque nouvelle commande réussie (Intégration email à configurer).</p>
+                <p className="text-xs text-brand-500 mt-2">Cet email recevra une alerte à chaque nouvelle commande réussie.</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-brand-700 mb-2">Email Expéditeur (Resend From)</label>
+                <div className="flex relative items-center">
+                  <div className="w-12 h-full absolute left-0 flex items-center justify-center text-brand-400">
+                    <Save className="w-5 h-5" />
+                  </div>
+                  <input 
+                    type="email" 
+                    value={settings.orderNotificationSenderEmail} 
+                    onChange={(e) => handleChange('orderNotificationSenderEmail', e.target.value)} 
+                    className="w-full pl-12 pr-4 py-2.5 rounded-xl border border-brand-200 outline-none focus:border-brand-900 focus:ring-1 focus:ring-brand-900"
+                    placeholder="onboarding@resend.dev"
+                  />
+                </div>
+                <p className="text-xs text-brand-500 mt-2">L'adresse affichée comme expéditeur (ex: contact@votre-domaine.com). Utilisez 'onboarding@resend.dev' si vous n'avez pas de domaine vérifié.</p>
               </div>
 
               <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl flex items-center justify-between gap-4 mt-6">

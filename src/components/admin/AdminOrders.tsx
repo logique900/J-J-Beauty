@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { db } from '../../lib/firebase';
 import { sendNotification } from '../../services/notificationService';
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from '../../lib/toast';
 
@@ -100,6 +100,26 @@ export function AdminOrders() {
             '/account'
           );
         }
+
+        // Send email notification to customer
+        if (orderToUpdate.email) {
+          getDoc(doc(db, 'settings', 'general')).then(settingsSnap => {
+            const senderEmail = settingsSnap.exists() ? settingsSnap.data().orderNotificationSenderEmail : 'onboarding@resend.dev';
+            
+            fetch(`${window.location.origin}/api/notifications/customer-status-update`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                orderId: id,
+                customerEmail: orderToUpdate.email,
+                customerName: orderToUpdate.customer,
+                newStatus: newStatus,
+                trackingNumber: orderToUpdate.trackingNumber || '',
+                senderEmail: senderEmail || 'onboarding@resend.dev'
+              })
+            }).catch(err => console.error("Email notification failed:", err));
+          }).catch(err => console.error("Settings fetch failed for notification:", err));
+        }
       }
 
       toast.success('Statut mis à jour avec succès.');
@@ -119,6 +139,26 @@ export function AdminOrders() {
       });
       setShowRefundModal(false);
       toast.success('Remboursement effectué !');
+
+      // Trigger notification for refund
+      if (selectedOrder.email) {
+        getDoc(doc(db, 'settings', 'general')).then(settingsSnap => {
+          const senderEmail = settingsSnap.exists() ? settingsSnap.data().orderNotificationSenderEmail : 'onboarding@resend.dev';
+          
+          fetch(`${window.location.origin}/api/notifications/customer-status-update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId: selectedOrder.id,
+              customerEmail: selectedOrder.email,
+              customerName: selectedOrder.customer,
+              newStatus: 'refunded',
+              trackingNumber: '',
+              senderEmail: senderEmail || 'onboarding@resend.dev'
+            })
+          }).catch(err => console.error("Refund email notification failed:", err));
+        }).catch(err => console.error("Settings fetch failed for refund notification:", err));
+      }
     } catch (err) {
       console.error(err);
       toast.error('Erreur.');
