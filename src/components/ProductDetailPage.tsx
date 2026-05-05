@@ -129,17 +129,6 @@ export function ProductDetailPage({ product, onBack, onNavigate, allProducts = [
               </h1>
               
               <div className="flex flex-wrap items-center gap-4 mb-4">
-                <div className="flex items-center gap-1 bg-brand-100 dark:bg-brand-200 px-3 py-1.5 rounded-lg border border-brand-200 dark:border-brand-300">
-                  <div className="flex text-accent-500">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star key={star} className={`w-4 h-4 ${star <= Math.round(product.rating) ? 'fill-current' : 'text-brand-300'}`} />
-                    ))}
-                  </div>
-                  <span className="font-bold text-brand-950 ml-1">{product.rating}</span>
-                  <span className="text-sm text-brand-600 underline ml-1 cursor-pointer hover:text-brand-900">
-                    ({product.reviewsCount} avis)
-                  </span>
-                </div>
                 {product.sku && (
                   <span className="text-sm text-brand-400 font-medium tracking-wider">SKU: {product.sku}</span>
                 )}
@@ -297,45 +286,43 @@ export function ProductDetailPage({ product, onBack, onNavigate, allProducts = [
             </div>
 
             {/* Details Accordion */}
-            <div className="border-t border-brand-200 dark:border-brand-300 pt-2 mb-8">
+            <div className="border-t border-gray-200 pt-2 mb-10">
               {[
-                { id: 'desc', label: 'Description détaillée', content: <p className="text-brand-700 dark:text-brand-800 leading-relaxed">{product.description}</p> },
+                { id: 'desc', label: 'Description détaillée', content: <p className="text-gray-600 font-sans leading-relaxed text-sm">{product.description}</p> },
                 { id: 'specs', label: 'Caractéristiques Techniques', content: (
-                  product.features ? (
-                    <table className="w-full text-sm text-left">
-                      <tbody className="divide-y divide-brand-100 dark:divide-brand-200">
-                        {product.features?.map((feat, i) => (
-                          <tr key={i} className="hover:bg-brand-50 dark:hover:bg-brand-200 transition-colors">
-                            <td className="py-3 pr-4 font-bold text-brand-900 w-1/3 uppercase text-[10px] tracking-wider">{feat.label}</td>
-                            <td className="py-3 text-brand-700 font-medium">{feat.value}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  ) : <p className="text-brand-500 italic">Aucune caractéristique technique spécifique répertoriée.</p>
+                  product.features && product.features.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-y-3 font-sans">
+                      {product.features?.map((feat, i) => (
+                        <div key={i} className="flex justify-between border-b border-gray-100 pb-2 last:border-0 last:pb-0">
+                          <span className="text-gray-500 font-medium text-xs uppercase tracking-widest">{feat.label}</span>
+                          <span className="text-black font-semibold text-sm text-right">{feat.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <p className="text-gray-400 italic text-sm">Aucune caractéristique technique spécifique répertoriée.</p>
                 )},
                 { id: 'care', label: 'Composition & Entretien', content: (
-                  <div className="space-y-4 text-sm text-brand-700">
-                    <div className="p-4 bg-brand-50 dark:bg-brand-200 rounded-xl">
-                      <strong className="text-brand-900 block mb-1 font-bold uppercase text-[10px] tracking-widest">Composition</strong>
-                      <p className="font-medium">{product.composition || 'Formulation hypoallergénique'}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-sans text-sm">
+                    <div className="p-5 bg-gray-50 rounded">
+                      <strong className="text-gray-500 block mb-2 font-bold uppercase text-[10px] tracking-[0.15em]">Composition</strong>
+                      <p className="font-medium text-black">{product.composition || 'Formulation hypoallergénique'}</p>
                     </div>
-                    <div className="p-4 bg-brand-50 dark:bg-brand-200 rounded-xl">
-                      <strong className="text-brand-900 block mb-1 font-bold uppercase text-[10px] tracking-widest">Conseils d'utilisation</strong>
-                      <p className="font-medium">{product.careInstructions || 'Appliquer sur une peau nettoyée matin et soir.'}</p>
+                    <div className="p-5 bg-gray-50 rounded">
+                      <strong className="text-gray-500 block mb-2 font-bold uppercase text-[10px] tracking-[0.15em]">Conseils d'utilisation</strong>
+                      <p className="font-medium text-black">{product.careInstructions || 'Appliquer sur une peau nettoyée matin et soir.'}</p>
                     </div>
                   </div>
                 )}
               ].map((tab) => (
-                <div key={tab.id} className="border-b border-brand-200 dark:border-brand-300">
+                <div key={tab.id} className="border-b border-gray-200">
                   <button 
                     onClick={() => setOpenTab(openTab === tab.id ? null as any : tab.id)}
-                    className="flex justify-between items-center w-full py-5 font-bold text-brand-900 hover:text-brand-600 transition uppercase text-xs tracking-widest"
+                    className="flex justify-between items-center w-full py-6 font-bold text-black hover:text-gray-600 transition uppercase text-[11px] tracking-[0.15em]"
                   >
                     {tab.label}
-                    <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${openTab === tab.id ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${openTab === tab.id ? 'rotate-180' : ''}`} />
                   </button>
-                  <div className={`overflow-hidden transition-all duration-300 ${openTab === tab.id ? 'max-h-[1000px] opacity-100 pb-8' : 'max-h-0 opacity-0'}`}>
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${openTab === tab.id ? 'max-h-[1000px] opacity-100 pb-6' : 'max-h-0 opacity-0'}`}>
                     {tab.content}
                   </div>
                 </div>
@@ -343,13 +330,13 @@ export function ProductDetailPage({ product, onBack, onNavigate, allProducts = [
             </div>
 
             {/* Social Share */}
-            <div className="flex items-center gap-4 text-sm text-brand-500 mb-12">
-              <span className="font-bold uppercase tracking-widest text-[10px]">Partager</span>
+            <div className="flex items-center gap-4 text-sm mb-12">
+              <span className="font-bold uppercase tracking-[0.15em] text-[10px] text-gray-500">Partager</span>
               <div className="flex gap-2">
-                <button onClick={handleShare} className="w-9 h-9 rounded-full bg-brand-100 dark:bg-brand-200 flex items-center justify-center hover:bg-brand-900 hover:text-white text-brand-900 transition shadow-sm" title="Copier le lien"><Share2 className="w-4 h-4" /></button>
-                <a href="#" className="w-9 h-9 rounded-full bg-brand-100 dark:bg-brand-200 flex items-center justify-center hover:bg-[#1877F2] hover:text-white transition text-brand-900 shadow-sm" title="Facebook"><Facebook className="w-4 h-4" /></a>
-                <a href="#" className="w-9 h-9 rounded-full bg-brand-100 dark:bg-brand-200 flex items-center justify-center hover:bg-[#1DA1F2] hover:text-white transition text-brand-900 shadow-sm" title="Twitter/X"><Twitter className="w-4 h-4" /></a>
-                <a href="mailto:?subject=Regarde ce produit" className="w-9 h-9 rounded-full bg-brand-100 dark:bg-brand-200 flex items-center justify-center hover:bg-brand-900 hover:text-white transition text-brand-900 shadow-sm" title="Email"><Mail className="w-4 h-4" /></a>
+                <button onClick={handleShare} className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:border-black hover:bg-black hover:text-white transition-all text-gray-700" title="Copier le lien"><Share2 className="w-4 h-4" /></button>
+                <a href="#" className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:border-black hover:bg-[#1877F2] hover:text-white transition-all text-gray-700" title="Facebook"><Facebook className="w-4 h-4" /></a>
+                <a href="#" className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:border-black hover:bg-[#1DA1F2] hover:text-white transition-all text-gray-700" title="Twitter/X"><Twitter className="w-4 h-4" /></a>
+                <a href="mailto:?subject=Regarde ce produit" className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:border-black hover:bg-black hover:text-white transition-all text-gray-700" title="Email"><Mail className="w-4 h-4" /></a>
               </div>
             </div>
 

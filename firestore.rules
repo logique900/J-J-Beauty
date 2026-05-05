@@ -173,6 +173,17 @@ service cloud.firestore {
         ( !('cta' in data) || (data.cta is string && data.cta.size() <= 128) );
     }
 
+    function isValidNotification(data) {
+      return data.keys().hasAll(['userId', 'title', 'message', 'type', 'read', 'createdAt']) &&
+        data.userId is string && data.userId.size() <= 128 &&
+        data.title is string && data.title.size() <= 256 &&
+        data.message is string && data.message.size() <= 1000 &&
+        data.type is string && (data.type == 'info' || data.type == 'success' || data.type == 'warning' || data.type == 'error') &&
+        data.read is bool &&
+        data.createdAt is timestamp &&
+        ( !('link' in data) || (data.link is string && data.link.size() <= 1000) );
+    }
+
     // ----------------------------------------------------------------------
     // COLLECTIONS
     // ----------------------------------------------------------------------
@@ -323,6 +334,28 @@ service cloud.firestore {
       allow create: if true;
       allow update: if true;
       allow delete: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow get: if isValidId(notificationId) && 
+        (isAdmin() || (isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.userId == 'admin')));
+      allow list: if isAdmin() || (isSignedIn() && (resource.data.userId == request.auth.uid || (isAdmin() && resource.data.userId == 'admin')));
+      
+      allow create: if (isAdmin() || (isSignedIn() && incoming().userId == 'admin')) &&
+        isValidNotification(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().read == false;
+        
+      allow update: if isValidId(notificationId) && (
+        isAdmin() || (
+          isSignedIn() && 
+          (resource.data.userId == request.auth.uid || (isAdmin() && resource.data.userId == 'admin')) &&
+          isValidNotification(incoming()) &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['read'])
+        )
+      );
+      
+      allow delete: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
     }
   }
 }

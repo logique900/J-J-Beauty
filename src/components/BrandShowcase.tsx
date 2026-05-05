@@ -23,73 +23,73 @@ export function BrandShowcase({ brands, products, onNavigateToBrand }: BrandShow
   };
 
   return (
-    <section className="py-20 bg-brand-50/50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
-          <div>
-            <motion.h2 
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="text-3xl md:text-4xl font-serif font-bold text-brand-900 mb-2"
-            >
-              Nos Marques Partenaires
-            </motion.h2>
+    <section className="py-24 sm:py-32 bg-white dark:bg-brand-50 transition-colors">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-8">
+          <div className="max-w-2xl">
             <motion.p 
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="text-brand-600 max-w-lg"
+              className="text-xs font-sans tracking-[0.2em] font-semibold uppercase text-brand-500 dark:text-brand-600 mb-4"
             >
-              Nous sélectionnons avec soin les marques les plus prestigieuses pour vous offrir l'excellence en beauté.
+              Nos Partenaires
             </motion.p>
+            <motion.h2 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ delay: 0.1 }}
+              className="text-4xl md:text-5xl lg:text-6xl font-serif font-light text-brand-950 dark:text-brand-900 tracking-tight leading-none"
+            >
+              Marques <br/><span className="italic opacity-70">Prestigieuses</span>
+            </motion.h2>
           </div>
-          <button 
-            className="flex items-center gap-2 text-brand-900 font-bold hover:gap-3 transition-all"
-            onClick={() => {
-              // Maybe scroll to a full brands list or filters?
-              // For now we'll just have this as a header decoration or action
-            }}
+          <motion.div 
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="flex shrink-0"
           >
-            Voir toutes les marques <ArrowRight className="w-5 h-5" />
-          </button>
+             <button className="text-xs font-bold uppercase tracking-[0.15em] border-b border-brand-950 dark:border-brand-900 pb-1 text-brand-950 dark:text-brand-900 hover:text-brand-600 dark:hover:text-brand-700 hover:border-brand-600 dark:hover:border-brand-700 transition-colors">
+               Explorer toutes
+             </button>
+          </motion.div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-x-8 gap-y-12">
           {brands.map((brand, index) => (
             <motion.div
               key={brand.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.05 }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-10px" }}
+              transition={{ delay: index * 0.05, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
               onClick={() => onNavigateToBrand(brand.id)}
-              className="group bg-white rounded-2xl p-6 flex flex-col items-center justify-center border border-brand-100 shadow-sm hover:shadow-xl hover:border-brand-300 transition-all cursor-pointer aspect-square"
+              className="group flex flex-col items-center cursor-pointer"
             >
-              <div className="relative w-full h-full flex items-center justify-center">
+              <div className="relative w-32 h-32 mb-6 rounded-full border border-[#E4E3E0] dark:border-brand-300 bg-[#F9F9F8] dark:bg-brand-100 flex items-center justify-center overflow-hidden transition-all duration-500 group-hover:border-black dark:group-hover:border-brand-900 group-hover:shadow-[0_10px_30px_rgba(0,0,0,0.05)] dark:group-hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
                 {brand.logoUrl ? (
                   <img 
                     src={brand.logoUrl} 
                     alt={brand.name} 
-                    className="max-w-full max-h-[70%] object-contain filter grayscale group-hover:grayscale-0 transition-all duration-500" 
+                    className="w-[60%] h-[60%] object-contain filter grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 ease-[0.16,1,0.3,1] dark:invert dark:group-hover:invert-0" 
                   />
                 ) : (
-                  <div className="text-2xl font-serif font-bold text-brand-300 group-hover:text-brand-900 transition-colors uppercase letter tracking-widest">
+                  <div className="text-2xl font-serif font-light text-black/40 dark:text-brand-900/40 group-hover:text-black dark:group-hover:text-brand-900 transition-colors uppercase tracking-widest">
                     {brand.name.substring(0, 2)}
                   </div>
                 )}
-                
-                <div className="absolute inset-0 bg-brand-900/0 group-hover:bg-brand-900/5 rounded-xl transition-colors duration-300" />
-                
-                {/* Product Count Badge */}
-                <div className="absolute top-0 right-0 bg-brand-100 text-brand-900 px-2 py-1 rounded-lg text-[10px] font-bold shadow-sm border border-brand-200">
-                  {getProductCount(brand.id, brand.name)} Produits
-                </div>
               </div>
-              <p className="mt-4 text-xs font-bold text-brand-400 group-hover:text-brand-900 uppercase tracking-widest transition-colors">
-                {brand.name}
-              </p>
+              <div className="text-center">
+                <p className="text-[11px] font-bold text-black dark:text-brand-900 uppercase tracking-[0.15em] mb-1">
+                  {brand.name}
+                </p>
+                <p className="text-[10px] text-gray-500 dark:text-brand-600 font-medium">
+                  {getProductCount(brand.id, brand.name)} PRODUITS
+                </p>
+              </div>
             </motion.div>
           ))}
         </div>

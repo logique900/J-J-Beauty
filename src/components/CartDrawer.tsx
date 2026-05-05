@@ -41,23 +41,6 @@ export function CartDrawer() {
               </button>
             </div>
 
-            {/* Free Shipping Progress */}
-            {items.length > 0 && (
-              <div className="p-4 bg-gray-50 border-b border-gray-100">
-                <p className="text-sm text-gray-700 font-medium mb-2 text-center">
-                  {amountToFreeShipping > 0 
-                    ? <>Plus que <span className="font-bold text-black">{amountToFreeShipping.toFixed(2)} DT</span> pour la livraison gratuite !</>
-                    : <span className="text-green-600">Vous bénéficiez de la livraison gratuite !</span>}
-                </p>
-                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full transition-all duration-500 ease-out ${amountToFreeShipping === 0 ? 'bg-green-500' : 'bg-black'}`}
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-              </div>
-            )}
-
             {/* Cart Items */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
               {items.length === 0 ? (

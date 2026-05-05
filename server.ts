@@ -2,14 +2,14 @@ import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
-  const PORT = Number(process.env.PORT) || 3000;
+  const PORT = 3000;
 
   // Middleware to parse JSON
   app.use(express.json());
@@ -31,6 +31,7 @@ async function startServer() {
   const apiRouter = express.Router();
 
   // Health check
+
   apiRouter.get('/health', (req, res) => {
     res.json({ 
       status: 'ok', 
@@ -41,165 +42,60 @@ async function startServer() {
     });
   });
 
-  // Helper to create transport
-  const getTransporter = () => {
-    const port = Number(process.env.SMTP_PORT) || 587;
-    const isSecure = process.env.SMTP_SECURE === 'true' || port === 465;
-    return nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: port,
-      secure: isSecure,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      connectionTimeout: 10000,
-      greetingTimeout: 5000,
-      socketTimeout: 10000,
-    });
-  };
-
-  const checkMock = () => {
-    return (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS);
-  };
-
-  const getFromEmail = () => process.env.SMTP_FROM || `"Boutique" <${process.env.SMTP_USER}>`;
-
-  const handleError = (res, error) => {
-    console.error('Erreur SMTP:', error);
-    let errorMessage = String(error.message || error);
-    if (errorMessage.includes('Unexpected socket close')) {
-        errorMessage = "Connexion SMTP perdue. Vérifiez le port (465/587) et le paramètre sécurisé.";
-    } else if (errorMessage.includes('Invalid login') || errorMessage.includes('535')) {
-        errorMessage = "Erreur d'authentification SMTP : Utilisateur/Mot de passe incorrect.";
-    }
-    res.status(500).json({ success: false, error: errorMessage });
-  };
-
   // --- API ROUTES ---
-  
-  apiRouter.post('/send-order-email', async (req, res) => {
-    console.log('[API] POST /send-order-email');
-    try {
-      const { customerEmail, customerName, orderId, adminEmail, totalAmount, items, shippingAddress, paymentMethod, deliveryMethod } = req.body;
-      
-      if (checkMock()) {
-        console.log(`[Mock Email] Order ${orderId} by ${customerName} (${totalAmount} DT)`);
-        console.log(`[Mock Email] Would send notification to Admin: ${adminEmail}`);
-        return res.json({ 
-          success: true, 
-          message: 'Simulation réussie. Configurez les variables SMTP_HOST, SMTP_USER, SMTP_PASS pour des emails réels.',
-          mock: true
-        });
-      }
 
-      const transporter = getTransporter();
-      const fromEmail = getFromEmail();
+  apiRouter.post('/notifications/admin-order', async (req, res) => {
+    const { orderId, amount, customerName, adminEmail } = req.body;
+    
+    console.log(`[Notification] Order ${orderId} received. Attempting to notify ${adminEmail}`);
 
-      // Format items
-      const itemsHtml = items ? items.map((i) => `<li>${i.quantity}x ${i.name} (${i.price} DT/u) = ${i.quantity * i.price} DT</li>`).join('') : '';
-
-      // Envoi à l'administrateur (Admin Notification) en arrière-plan
-      try {
-        const adminEmailResult = await transporter.sendMail({
-          from: fromEmail, 
-          to: adminEmail,
-          subject: `🚨 Nouvelle Commande reçue #${orderId} - (${totalAmount} DT)`,
-          html: `
-            <h1>Nouvelle Commande à traiter</h1>
-            <p><strong>Réf:</strong> #${orderId}</p>
-            <p><strong>Client:</strong> ${customerName} (${customerEmail})</p>
-            <p><strong>Téléphone:</strong> ${shippingAddress?.phone || 'N/A'}</p>
-            <p><strong>Adresse:</strong> ${shippingAddress?.address1}, ${shippingAddress?.city}, ${shippingAddress?.country}</p>
-            <p><strong>Livraison:</strong> ${deliveryMethod === 'delivery' ? 'À domicile' : 'En magasin'}</p>
-            <p><strong>Paiement:</strong> ${paymentMethod}</p>
-            <p><strong>Montant Total:</strong> ${totalAmount} DT</p>
-            <h3>Articles :</h3>
-            <ul>${itemsHtml}</ul>
-            <br />
-            <a href="${process.env.PUBLIC_URL || 'http://localhost:3000'}/admin">Gérer les commandes</a>
-          `
-        });
-        console.log('Admin Email Result:', adminEmailResult.messageId);
-        res.json({ success: true, message: "La requête a bien été prise en compte et l'email a été envoyé." });
-      } catch (error) {
-        console.error('Erreur lors de l\'envoi de la notification administrateur:', error);
-        // On ne plante pas la commande pour autant
-        res.json({ success: true, message: "La commande a été créée mais l'email à l'admin a échoué.", warning: true });
-      }
-    } catch (error) {
-      handleError(res, error);
+    const resendKey = process.env.RESEND_API_KEY;
+    
+    if (!resendKey) {
+      console.warn('[Notification] RESEND_API_KEY is missing. Falling back to console simulation.');
+      console.log('\n======================================================');
+      console.log(`[SIMULATION EMAIL ADMIN] Nouvelle commande reçue !`);
+      console.log(`À: ${adminEmail || 'admin@jjbeauty.com'}`);
+      console.log(`Sujet: Nouvelle commande #${orderId}`);
+      console.log(`Corps: Une nouvelle commande a été passée par ${customerName}.`);
+      console.log(`Montant total: ${amount} DT.`);
+      console.log('======================================================\n');
+      return res.json({ success: true, message: 'Notification (mock) traitée (RESEND_API_KEY manquante)' });
     }
-  });
 
-  // Endpoint to send confirmation mail to user
-  apiRouter.post('/send-order-confirmation', async (req, res) => {
-    console.log('[API] POST /send-order-confirmation');
     try {
-      const { customerEmail, customerName, orderId, totalAmount } = req.body;
-      
-      if (checkMock()) {
-         console.log(`[Mock Email] Would send CONFIRMATION to ${customerEmail} for order ${orderId}`);
-         return res.json({ success: true, mock: true });
+      const resend = new Resend(resendKey);
+      const { data, error } = await resend.emails.send({
+        from: 'J&J Beauty <onboarding@resend.dev>', // Note: standard test sender, ideally updated with verified domain
+        to: [adminEmail || 'logique900@gmail.com'],
+        subject: `Nouvelle Commande Reçue - #${orderId}`,
+        html: `
+          <div style="font-family: sans-serif; padding: 20px; color: #333;">
+            <h1 style="color: #000;">Nouvelle commande sur J&J Beauty</h1>
+            <p>Bonjour,</p>
+            <p>Une nouvelle commande vient d'être passée sur votre boutique.</p>
+            <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #eee;">
+              <p><strong>ID Commande:</strong> #${orderId}</p>
+              <p><strong>Client:</strong> ${customerName}</p>
+              <p><strong>Montant Total:</strong> ${amount} DT</p>
+            </div>
+            <p>Connectez-vous à votre interface administrateur pour voir les détails et traiter la commande.</p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+            <p style="font-size: 0.8em; color: #999;">Ceci est une notification automatique de votre boutique J&J Beauty.</p>
+          </div>
+        `
+      });
+
+      if (error) {
+        console.error('[Resend Error]', error);
+        return res.status(500).json({ success: false, error: error.message });
       }
 
-      const transporter = getTransporter();
-      
-      try {
-        const result = await transporter.sendMail({
-          from: getFromEmail(),
-          to: customerEmail,
-          subject: `Confirmation de votre commande #${orderId}`,
-          html: `
-            <h1>Bonne nouvelle, ${customerName} !</h1>
-            <p>Votre commande <strong>#${orderId}</strong> d'un montant de <strong>${totalAmount} DT</strong> a été <strong>validée</strong> par notre équipe.</p>
-            <p>Nous préparons l'expédition. Vous la recevrez très prochainement !</p>
-          `
-        });
-        console.log('Confirm Email:', result.messageId);
-        res.json({ success: true, message: "Email envoyé avec succès." });
-      } catch (err) {
-        console.error('Erreur email confirm:', err);
-        res.json({ success: true, message: "Échec de l'envoi de l'email, mais requête gérée.", warning: true });
-      }
-    } catch(error) {
-      handleError(res, error);
-    }
-  });
-
-  // Endpoint to send cancellation mail to user
-  apiRouter.post('/send-order-cancellation', async (req, res) => {
-    console.log('[API] POST /send-order-cancellation');
-    try {
-      const { customerEmail, customerName, orderId, reason } = req.body;
-      
-      if (checkMock()) {
-         console.log(`[Mock Email] Would send CANCELLATION to ${customerEmail} for order ${orderId}`);
-         return res.json({ success: true, mock: true });
-      }
-
-      const transporter = getTransporter();
-      
-      try {
-        const result = await transporter.sendMail({
-          from: getFromEmail(),
-          to: customerEmail,
-          subject: `Annulation de votre commande #${orderId}`,
-          html: `
-            <h1>Bonjour ${customerName},</h1>
-            <p>Nous sommes au regret de vous informer que votre commande <strong>#${orderId}</strong> a dû être annulée.</p>
-            ${reason ? `<p><strong>Motif:</strong> ${reason}</p>` : ''}
-            <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
-          `
-        });
-        console.log('Cancel Email:', result.messageId);
-        res.json({ success: true, message: "Email envoyé avec succès." });
-      } catch (err) {
-        console.error('Erreur email cancel:', err);
-        res.json({ success: true, message: "Échec de l'envoi de l'email, mais requête gérée.", warning: true });
-      }
-    } catch(error) {
-      handleError(res, error);
+      console.log('[Notification] Email sent successfully:', data?.id);
+      res.json({ success: true, message: 'Email envoyé avec succès', id: data?.id });
+    } catch (err) {
+      console.error('[Notification Hub Error]', err);
+      res.status(500).json({ success: false, error: 'Internal Server Error' });
     }
   });
 

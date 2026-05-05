@@ -354,7 +354,7 @@ export default function App() {
         <VisitorTracker />
         <AdminOrderListener />
         <CartProvider>
-          <div className="min-h-screen bg-brand-50 font-sans text-brand-950">
+          <div className="min-h-screen bg-white dark:bg-brand-50 font-sans text-black dark:text-brand-900 selection:bg-black dark:selection:bg-brand-900 selection:text-white transition-colors duration-300">
             <PWAManager />
             {route.type === 'admin' ? (
               <AdminDashboard onBack={navHelpers.goHome} />
@@ -448,46 +448,46 @@ export default function App() {
                     </div>
 
                   <div className="flex-1 w-full min-w-0">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-4 border-b border-brand-200 mb-4 gap-4">
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => setIsFilterOpen(true)} className="lg:hidden flex items-center gap-2 px-4 py-2 border border-brand-200 rounded-full text-sm font-medium hover:border-brand-900 transition-colors">
-                          <SlidersHorizontal className="w-4 h-4" /> Filtres {activeFiltersCount > 0 && <span className="bg-brand-900 text-white px-1.5 py-0.5 rounded-full text-[10px] ml-1">{activeFiltersCount}</span>}
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-6 border-b border-gray-100 dark:border-brand-200 mb-8 gap-4 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <button onClick={() => setIsFilterOpen(true)} className="lg:hidden flex items-center gap-2 px-6 py-2 border border-gray-200 dark:border-brand-300 rounded-full text-xs font-bold uppercase tracking-[0.1em] hover:border-black dark:hover:border-brand-900 transition-colors">
+                          <SlidersHorizontal className="w-4 h-4" /> Filtres {activeFiltersCount > 0 && <span className="bg-black dark:bg-brand-900 text-white px-2 py-0.5 rounded-full ml-1">{activeFiltersCount}</span>}
                         </button>
                         <div className="relative">
-                          <button onClick={() => setIsSortOpen(!isSortOpen)} className="flex items-center gap-2 px-4 py-2 border border-brand-200 rounded-full text-sm font-medium hover:border-brand-900 transition-colors bg-brand-50">
-                            Trier par: <span className="font-semibold">{getSortLabel(sort)}</span> <ChevronDown className="w-4 h-4" />
+                          <button onClick={() => setIsSortOpen(!isSortOpen)} className="flex items-center gap-2 px-6 py-2 border border-gray-200 dark:border-brand-300 rounded-full text-xs font-bold uppercase tracking-[0.1em] hover:border-black dark:hover:border-brand-900 transition-colors bg-transparent text-black dark:text-brand-900">
+                            <span className="opacity-60 hidden sm:inline">Trier par:</span> <span className="font-bold">{getSortLabel(sort)}</span> <ChevronDown className="w-4 h-4" />
                           </button>
                           {isSortOpen && (
-                            <div className="absolute top-12 left-0 w-56 bg-brand-50 border border-brand-200 rounded-xl shadow-xl z-30 py-2">
+                            <div className="absolute top-12 left-0 w-56 bg-white dark:bg-brand-100 border border-gray-100 dark:border-brand-200 shadow-xl z-30 py-2">
                               {(['relevance', 'price_asc', 'price_desc', 'newest', 'best_selling', 'best_rated', 'discount'] as SortOption[]).map(s => (
-                                <button key={s} onClick={() => { setSort(s); setIsSortOpen(false); }} className={`w-full text-left px-4 py-2 text-sm transition-colors ${sort === s ? 'font-bold bg-brand-100 text-brand-950' : 'text-brand-800 hover:bg-brand-100'}`}>{getSortLabel(s)}</button>
+                                <button key={s} onClick={() => { setSort(s); setIsSortOpen(false); }} className={`w-full text-left px-6 py-3 text-xs uppercase tracking-[0.1em] transition-colors ${sort === s ? 'font-bold bg-gray-50 dark:bg-brand-200 text-black dark:text-brand-900' : 'text-gray-500 dark:text-brand-700 hover:bg-gray-50 dark:hover:bg-brand-200 hover:text-black dark:hover:text-brand-900'}`}>{getSortLabel(s)}</button>
                               ))}
                             </div>
                           )}
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between w-full sm:w-auto gap-6 text-sm text-brand-600">
+                      <div className="flex items-center justify-between w-full sm:w-auto gap-8 text-xs font-bold uppercase tracking-[0.1em] text-gray-500 dark:text-brand-600">
                         <span>{totalProducts} produits</span>
-                        <div className="hidden md:flex items-center bg-brand-200 rounded-lg p-1">
-                          <button onClick={() => setViewMode('grid-2')} className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid-2' ? 'bg-brand-50 shadow-sm text-brand-950' : 'text-brand-700'}`}><Grid2X2 className="w-4 h-4" /></button>
-                          <button onClick={() => setViewMode('grid-3')} className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid-3' ? 'bg-brand-50 shadow-sm text-brand-950' : 'text-brand-700'}`}><Grid3X3 className="w-4 h-4" /></button>
-                          <button onClick={() => setViewMode('grid-4')} className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid-4' ? 'bg-brand-50 shadow-sm text-brand-950' : 'text-brand-700'}`}><LayoutGrid className="w-4 h-4" /></button>
-                          <div className="w-px h-4 bg-brand-300 mx-1"></div>
-                          <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-brand-50 shadow-sm text-brand-950' : 'text-brand-700'}`}><List className="w-4 h-4" /></button>
+                        <div className="hidden md:flex items-center bg-gray-50 dark:bg-brand-100 rounded-full p-1 border border-gray-100 dark:border-brand-200 transition-colors">
+                          <button onClick={() => setViewMode('grid-2')} className={`p-2 rounded-full transition-colors ${viewMode === 'grid-2' ? 'bg-white dark:bg-brand-50 shadow-sm text-black dark:text-brand-900' : 'text-gray-400 dark:text-brand-600 hover:text-black dark:hover:text-brand-900'}`}><Grid2X2 className="w-4 h-4" /></button>
+                          <button onClick={() => setViewMode('grid-3')} className={`p-2 rounded-full transition-colors ${viewMode === 'grid-3' ? 'bg-white dark:bg-brand-50 shadow-sm text-black dark:text-brand-900' : 'text-gray-400 dark:text-brand-600 hover:text-black dark:hover:text-brand-900'}`}><Grid3X3 className="w-4 h-4" /></button>
+                          <button onClick={() => setViewMode('grid-4')} className={`p-2 rounded-full transition-colors ${viewMode === 'grid-4' ? 'bg-white dark:bg-brand-50 shadow-sm text-black dark:text-brand-900' : 'text-gray-400 dark:text-brand-600 hover:text-black dark:hover:text-brand-900'}`}><LayoutGrid className="w-4 h-4" /></button>
+                          <div className="w-px h-4 bg-gray-200 dark:bg-brand-300 mx-1"></div>
+                          <button onClick={() => setViewMode('list')} className={`p-2 rounded-full transition-colors ${viewMode === 'list' ? 'bg-white dark:bg-brand-50 shadow-sm text-black dark:text-brand-900' : 'text-gray-400 dark:text-brand-600 hover:text-black dark:hover:text-brand-900'}`}><List className="w-4 h-4" /></button>
                         </div>
                       </div>
                     </div>
 
                     {activeFiltersCount > 0 && (
                       <div className="flex flex-wrap items-center gap-2 mb-6">
-                        <span className="text-sm font-medium text-gray-500 mr-2">Filtres actifs ({activeFiltersCount})</span>
-                        <button onClick={() => setFilters(DEFAULT_FILTERS)} className="text-sm font-medium text-blue-600 hover:text-blue-800 underline ml-2">Tout effacer</button>
+                        <span className="text-sm font-medium text-gray-500 dark:text-brand-600 mr-2">Filtres actifs ({activeFiltersCount})</span>
+                        <button onClick={() => setFilters(DEFAULT_FILTERS)} className="text-sm font-medium text-accent-600 dark:text-accent-500 hover:text-accent-800 dark:hover:text-accent-400 underline ml-2">Tout effacer</button>
                       </div>
                     )}
 
                     {!isDbLoaded ? (
-                      <div className="flex flex-col items-center justify-center py-20 text-center"><h3 className="text-xl font-bold text-gray-500">Chargement des produits...</h3></div>
+                      <div className="flex flex-col items-center justify-center py-20 text-center"><h3 className="text-xl font-bold text-gray-500 dark:text-brand-600">Chargement des produits...</h3></div>
                     ) : visibleProductsList.length > 0 ? (
                       <div className={`grid gap-6 md:gap-8 ${currentGridClass()}`}>
                         {visibleProductsList.map(product => (
@@ -497,13 +497,13 @@ export default function App() {
                         ))}
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center justify-center py-20 text-center"><h3 className="text-xl font-bold">Aucun produit</h3></div>
+                      <div className="flex flex-col items-center justify-center py-20 text-center"><h3 className="text-xl font-bold text-black dark:text-brand-900">Aucun produit</h3></div>
                     )}
 
                     {visibleCount < totalProducts && (
                       <div className="mt-16 flex flex-col items-center">
-                        <p className="text-sm text-gray-500 mb-4">Vous avez vu {visibleProductsList.length} sur {totalProducts}</p>
-                        <button onClick={handleLoadMore} className="px-8 py-3 border-2 border-black text-black font-semibold rounded-full hover:bg-black hover:text-white transition-colors">Voir plus</button>
+                        <p className="text-sm text-gray-500 dark:text-brand-600 mb-4">Vous avez vu {visibleProductsList.length} sur {totalProducts}</p>
+                        <button onClick={handleLoadMore} className="px-8 py-3 border-2 border-black dark:border-brand-900 text-black dark:text-brand-900 font-semibold rounded-full hover:bg-black dark:hover:bg-brand-900 hover:text-white transition-colors">Voir plus</button>
                       </div>
                     )}
                   </div>

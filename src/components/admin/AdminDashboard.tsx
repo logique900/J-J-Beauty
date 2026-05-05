@@ -13,7 +13,6 @@ import { db } from '../../lib/firebase';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 
 import { AdminProducts } from './AdminProducts';
-import { AdminInventory } from './AdminInventory';
 import { AdminOrders } from './AdminOrders';
 import { AdminCustomers } from './AdminCustomers';
 import { AdminAnalytics } from './AdminAnalytics';
@@ -21,51 +20,36 @@ import { AdminCategories } from './AdminCategories';
 import { AdminBrands } from './AdminBrands';
 import { AdminSettings } from './AdminSettings';
 import { AdminHero } from './AdminHero';
+import { NotificationCenter } from '../NotificationCenter';
+import { subscribeToNotifications, AppNotification } from '../../services/notificationService';
 import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 
-const REVENUE_DATA = [
-  { name: '14 Avr', rev: 4000, conv: 2.4 },
-  { name: '15 Avr', rev: 3000, conv: 1.8 },
-  { name: '16 Avr', rev: 2000, conv: 1.2 },
-  { name: '17 Avr', rev: 2780, conv: 2.1 },
-  { name: '18 Avr', rev: 1890, conv: 1.4 },
-  { name: '19 Avr', rev: 2390, conv: 1.9 },
-  { name: '20 Avr', rev: 3490, conv: 2.8 },
-];
-
-const CATEGORY_DATA = [
-  { name: 'Maquillage', value: 45 },
-  { name: 'Soins', value: 35 },
-  { name: 'Parfums', value: 20 },
-];
-const COLORS = ['#9b4b4b', '#d4a373', '#e2ccb4'];
-
-const ALERTS = [
-  { id: 1, type: 'stock', message: 'Sérum Éclat Vitamine C - Stock critique (5 restants)', level: 'high' },
-  { id: 2, type: 'order', message: 'Commande anormale détectée (Montant: 850DT)', level: 'medium' },
-  { id: 3, type: 'review', message: 'Nouvel avis négatif (1 étoile) sur "Fond de Teint Fluide"', level: 'medium' },
-  { id: 4, type: 'traffic', message: 'Pic de trafic détecté (+45% de visiteurs)', level: 'info' }
-];
+const COLORS = ['#9b4b4b', '#d4a373', '#e2ccb4', '#84a59d', '#f28482'];
 
 interface AdminDashboardProps {
   onBack: () => void;
 }
 
-type AdminTab = 'overview' | 'analytics' | 'orders' | 'customers' | 'products' | 'categories' | 'brands' | 'inventory' | 'settings' | 'hero';
+type AdminTab = 'overview' | 'analytics' | 'orders' | 'customers' | 'products' | 'categories' | 'brands' | 'settings' | 'hero';
 
 export function AdminDashboard({ onBack }: AdminDashboardProps) {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const [period, setPeriod] = useState('7 Jours');
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [kpiStats, setKpiStats] = useState({ revenue: 0, ordersCount: 0, avgCart: 0, uniqueVisitors: 0 });
   const [dbLoading, setDbLoading] = useState(true);
+  
+  const [revenueData, setRevenueData] = useState<any[]>([]);
+  const [categoryData, setCategoryData] = useState<{name: string, value: number}[]>([]);
+  
   const [adminAlerts, setAdminAlerts] = useState<any[]>([]);
+  const [productAlerts, setProductAlerts] = useState<any[]>([]);
+  
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -75,7 +59,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
     setError(null);
 
     // Fetch recent orders for the dashboard
-    const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'), limit(10));
+    const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'), limit(500));
     const unsubscribe = onSnapshot(q, (snap) => {
       try {
         const orders = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -85,39 +69,91 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
           customer: (o.shippingAddress?.firstName || '') + ' ' + (o.shippingAddress?.lastName || 'Client'),
           amount: o.totalAmount || 0,
           status: o.status || 'pending',
-          date: new Date(o.createdAt?.toDate ? o.createdAt.toDate() : o.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+          date: new Date(o.createdAt?.toDate ? o.createdAt.toDate() : o.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
+          dateObj: new Date(o.createdAt?.toDate ? o.createdAt.toDate() : o.createdAt)
         }));
         setRecentOrders(mappedOrders.slice(0, 5)); // Keep only latest 5 for overview
-
-        // Create dynamic alerts from recent orders
-        const dynamicOrderAlerts = orders.slice(0, 3).map((o: any) => ({
-          id: `order-${o.id}`,
-          type: 'order',
-          message: `Nouvelle commande de ${(o.shippingAddress?.firstName || '')} ${o.shippingAddress?.lastName || 'Client'} (${o.totalAmount || 0} DT)`,
-          level: 'medium',
-          dateObj: o.createdAt?.toDate ? o.createdAt.toDate() : new Date()
-        }));
-
-        // Combine with some static mock alerts for UI fullness
-        const mixedAlerts = [
-          { id: 'stock-1', type: 'stock', message: 'Sérum Éclat Vitamine C - Stock critique (5 restants)', level: 'high', dateObj: new Date() },
-          ...dynamicOrderAlerts,
-          { id: 'traffic-1', type: 'traffic', message: 'Pic de trafic détecté (+45% de visiteurs)', level: 'info', dateObj: new Date(Date.now() - 3600000) }
-        ];
         
-        // Sort alerts by date
-        mixedAlerts.sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
-        setAdminAlerts(mixedAlerts);
+        let daysToFilter = 7;
+        if (period === "Aujourd'hui") daysToFilter = 1;
+        if (period === "30 Jours") daysToFilter = 30;
+        if (period === "Cette année") daysToFilter = 365;
+
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - daysToFilter);
+
+        const filteredOrders = orders.filter((o: any) => {
+           const d = new Date(o.createdAt?.toDate ? o.createdAt.toDate() : o.createdAt);
+           return d.getTime() >= cutoffDate.getTime();
+        });
 
         // Simple aggregations for demo 
-        const totalRev = orders.reduce((acc: number, cur: any) => acc + (cur.totalAmount || 0), 0);
-        const count = orders.length;
+        const totalRev = filteredOrders.reduce((acc: number, cur: any) => acc + (cur.totalAmount || 0), 0);
+        const count = filteredOrders.length;
         setKpiStats(prev => ({
           ...prev,
           revenue: totalRev,
           ordersCount: count,
           avgCart: count > 0 ? totalRev / count : 0
         }));
+        
+        // Calculate Revenue by Day
+        const daysLabels: string[] = [];
+        const daysCount = daysToFilter <= 30 ? daysToFilter : 12; // if "Cette année", show 12 months, otherwise days
+        
+        if (daysToFilter <= 30) {
+          for (let i = daysCount - 1; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            daysLabels.push(d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }));
+          }
+        } else {
+          for (let i = 11; i >= 0; i--) {
+            const d = new Date();
+            d.setMonth(d.getMonth() - i);
+            daysLabels.push(d.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }));
+          }
+        }
+        
+        const revMap = new Map<string, number>();
+        daysLabels.forEach(d => revMap.set(d, 0));
+        
+        filteredOrders.forEach((o: any) => {
+          const d = new Date(o.createdAt?.toDate ? o.createdAt.toDate() : o.createdAt);
+          const key = daysToFilter <= 30 ? 
+             d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) :
+             d.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
+             
+          if (revMap.has(key)) {
+             revMap.set(key, revMap.get(key)! + (o.totalAmount || 0));
+          }
+        });
+        
+        const newRevData = daysLabels.map(key => ({
+          name: key,
+          rev: revMap.get(key) || 0
+        }));
+        
+        setRevenueData(newRevData);
+        
+        // Calculate Sales by Category
+        const catMap = new Map<string, number>();
+        filteredOrders.forEach((o: any) => {
+           if (o.items && Array.isArray(o.items)) {
+             o.items.forEach((item: any) => {
+               const catName = item.categoryId || 'Autre';
+               catMap.set(catName, (catMap.get(catName) || 0) + (item.quantity || 1));
+             });
+           }
+        });
+        
+        const catDataArray = Array.from(catMap.entries())
+          .map(([name, value]) => ({ name, value }))
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 5); // top 5
+          
+        setCategoryData(catDataArray.length > 0 ? catDataArray : [{ name: 'Aucune donnée', value: 1 }]);
+
         setDbLoading(false);
       } catch (err: any) {
         console.error("Dashboard data processing error:", err);
@@ -136,11 +172,25 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
 
     const unsubscribeVisits = onSnapshot(collection(db, 'visits'), (snap) => {
       try {
+        let daysToFilter = 7;
+        if (period === "Aujourd'hui") daysToFilter = 1;
+        if (period === "30 Jours") daysToFilter = 30;
+        if (period === "Cette année") daysToFilter = 365;
+
+        const cutoffDate = new Date();
+        cutoffDate.setHours(0, 0, 0, 0); // start of today
+        if (daysToFilter > 1) {
+            cutoffDate.setDate(cutoffDate.getDate() - daysToFilter + 1);
+        }
+
         const visitorIds = new Set();
         snap.docs.forEach(doc => {
           const data = doc.data();
-          const id = data.userId || data.anonymousId;
-          if (id) visitorIds.add(id);
+          const d = new Date(data.timestamp || new Date());
+          if (d.getTime() >= cutoffDate.getTime()) {
+             const id = data.userId || data.anonymousId;
+             if (id) visitorIds.add(id);
+          }
         });
         const cnt = visitorIds.size;
         setKpiStats(prev => ({
@@ -152,11 +202,45 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
       }
     });
 
+    // Watch products for low stock alerts
+    const unsubscribeProducts = onSnapshot(query(collection(db, 'products')), (snap) => {
+      const lowStock: any[] = [];
+      snap.docs.forEach(doc => {
+         const data = doc.data();
+         if (data.stock !== undefined && data.stock <= 5) {
+           lowStock.push({
+             id: `stock-${doc.id}`,
+             type: 'stock',
+             message: `${data.name} - Stock critique (${data.stock} restants)`,
+             level: data.stock === 0 ? 'high' : 'medium',
+             dateObj: new Date()
+           });
+         }
+      });
+      setProductAlerts(lowStock);
+    });
+
+    // Listen to real notifications
+    const unsubscribeNotifications = user ? subscribeToNotifications(user.uid, true, (realNotifs) => {
+      const mappedRealNotifs = realNotifs.map(n => ({
+        id: n.id,
+        type: n.type,
+        message: n.message,
+        level: n.type === 'error' || n.type === 'warning' ? 'high' : 'info',
+        dateObj: n.createdAt?.toDate ? n.createdAt.toDate() : new Date(),
+        isReal: true
+      }));
+
+      setAdminAlerts(mappedRealNotifs);
+    }) : () => {};
+
     return () => {
       unsubscribe();
       unsubscribeVisits();
+      unsubscribeProducts();
+      unsubscribeNotifications();
     };
-  }, [isAdmin]);
+  }, [isAdmin, user, period]);
 
   if (authLoading) {
     return (
@@ -214,8 +298,6 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
         return <AdminCustomers />;
       case 'products':
         return <AdminProducts />;
-      case 'inventory':
-        return <AdminInventory />;
       case 'categories':
         return <AdminCategories />;
       case 'brands':
@@ -268,7 +350,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                 </div>
                 <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={REVENUE_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#9b4b4b" stopOpacity={0.3}/>
@@ -295,7 +377,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={CATEGORY_DATA}
+                        data={categoryData}
                         cx="50%"
                         cy="50%"
                         innerRadius={60}
@@ -304,7 +386,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                         dataKey="value"
                         stroke="none"
                       >
-                        {CATEGORY_DATA.map((entry, index) => (
+                        {categoryData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
@@ -314,18 +396,18 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none flex-col">
-                     <span className="text-2xl font-bold text-brand-900">450</span>
-                     <span className="text-xs text-brand-500">Produits</span>
+                     <span className="text-2xl font-bold text-brand-900">{categoryData.reduce((acc, curr) => acc + curr.value, 0)}</span>
+                     <span className="text-xs text-brand-500">Ventes</span>
                   </div>
                 </div>
                 <div className="flex flex-col gap-3 mt-4">
-                  {CATEGORY_DATA.map((item, index) => (
+                  {categoryData.map((item, index) => (
                     <div key={item.name} className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index] }}></div>
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
                         <span className="text-brand-700">{item.name}</span>
                       </div>
-                      <span className="font-medium text-brand-900">{item.value}%</span>
+                      <span className="font-medium text-brand-900">{item.value}</span>
                     </div>
                   ))}
                 </div>
@@ -343,7 +425,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                   </h3>
                 </div>
                 <div className="flex flex-col gap-4 flex-1">
-                  {adminAlerts.map(alert => (
+                  {[...adminAlerts, ...productAlerts].sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime()).slice(0, 10).map(alert => (
                     <div key={alert.id} className={`p-4 rounded-xl border flex items-start gap-3 transition-colors ${
                       alert.level === 'high' ? 'bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-900/30 text-red-800 dark:text-red-400' :
                       alert.level === 'medium' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-900/30 text-orange-800 dark:text-orange-400' :
@@ -417,7 +499,6 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
     { id: 'products', label: 'Produits', icon: ShoppingBag },
     { id: 'categories', label: 'Catégories', icon: LayoutDashboard },
     { id: 'brands', label: 'Marques', icon: Globe },
-    { id: 'inventory', label: 'Inventaire', icon: Box },
     { id: 'hero', label: 'Hero Section', icon: LayoutDashboard },
     { id: 'settings', label: 'Paramètres', icon: Settings },
   ];
@@ -548,58 +629,11 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
           </div>
 
           <div className="flex items-center gap-3 md:gap-6">
+            <NotificationCenter />
+            
             <div className="relative">
               <div 
-                onClick={() => { setShowNotifications(!showNotifications); setShowUserMenu(false) }} 
-                className="cursor-pointer hover:bg-brand-50 p-2 rounded-full transition-colors relative"
-              >
-                <Bell className="w-6 h-6 text-brand-700" />
-                <span className="absolute top-1.5 right-1.5 bg-accent-500 w-3 h-3 rounded-full border-2 border-white flex items-center justify-center text-[10px] text-white font-bold" />
-              </div>
-
-              <AnimatePresence>
-                {showNotifications && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)}></div>
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }} 
-                      animate={{ opacity: 1, y: 0, scale: 1 }} 
-                      exit={{ opacity: 0, scale: 0.95, pointerEvents: 'none' }} 
-                      transition={{ duration: 0.15 }}
-                      className="origin-top-right absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-brand-100 rounded-2xl shadow-xl z-50 overflow-hidden flex flex-col"
-                    >
-                      <div className="p-4 border-b border-brand-50 flex justify-between items-center bg-brand-50/50">
-                        <h3 className="font-bold text-brand-900 flex items-center gap-2">
-                          <Bell className="w-4 h-4 text-brand-500" />
-                          Notifications
-                        </h3>
-                        <button className="text-xs font-medium text-brand-500 hover:text-brand-900 transition hover:underline">Tout marquer comme lu</button>
-                      </div>
-                      <div className="max-h-[60vh] overflow-y-auto divide-y divide-brand-50 custom-scrollbar">
-                        {adminAlerts.map((alert, i) => (
-                          <div key={alert.id} className="p-4 flex items-start gap-3 hover:bg-brand-50 transition cursor-pointer group">
-                            <div className={`mt-0.5 shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${alert.level === 'high' ? 'bg-red-100 text-red-600' : alert.level === 'medium' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
-                              {alert.level === 'high' ? <AlertTriangle className="w-4 h-4"/> : <Bell className="w-4 h-4"/>}
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-brand-900 mb-1 leading-snug group-hover:text-brand-700 transition">{alert.message}</p>
-                              <span className="text-xs text-brand-400">Il y a quelques instants</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="p-3 border-t border-brand-50 bg-brand-50/30 text-center">
-                        <button className="text-sm font-medium text-brand-600 hover:text-brand-900 transition">Voir toutes les notifications</button>
-                      </div>
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
-            </div>
-
-            <div className="relative">
-              <div 
-                onClick={() => { setShowUserMenu(!showUserMenu); setShowNotifications(false) }} 
+                onClick={() => { setShowUserMenu(!showUserMenu); }} 
                 className="flex items-center gap-3 pl-4 border-l border-brand-100 group cursor-pointer"
               >
                 <div className="hidden sm:flex flex-col items-end">

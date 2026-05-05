@@ -99,15 +99,6 @@ export function QuickViewModal({ product, onClose }: QuickViewModalProps) {
 
           {/* Right: Details */}
           <div className="w-full md:w-1/2 p-6 md:p-10 flex flex-col overflow-y-auto">
-            <div className="flex items-center gap-2 mb-2 text-sm text-gray-500">
-              <div className="flex items-center text-yellow-400">
-                <Star className="w-4 h-4 fill-current" />
-                <span className="ml-1 font-medium text-gray-900">{product.rating}</span>
-              </div>
-              <span className="px-1">•</span>
-              <span className="underline cursor-pointer">{product.reviewsCount} avis</span>
-            </div>
-
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
               {product.name}
             </h2>

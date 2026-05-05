@@ -4,6 +4,7 @@ import {
   Check, Truck, Package, Download, X, Copy, ChevronLeft, MoreVertical
 } from 'lucide-react';
 import { db } from '../../lib/firebase';
+import { sendNotification } from '../../services/notificationService';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from '../../lib/toast';
@@ -57,32 +58,51 @@ export function AdminOrders() {
 
       const orderToUpdate = orders.find(o => o.id === id) || selectedOrder;
 
-      if (orderToUpdate && orderToUpdate.email) {
-         if (newStatus === 'confirmed') {
-            fetch('/api/send-order-confirmation', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                customerEmail: orderToUpdate.email,
-                customerName: orderToUpdate.customer,
-                orderId: id,
-                totalAmount: orderToUpdate.amount
-              })
-            }).catch(e => console.error("Erreur email confirmation:", e));
-         } else if (newStatus === 'cancelled') {
-            fetch('/api/send-order-cancellation', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                customerEmail: orderToUpdate.email,
-                customerName: orderToUpdate.customer,
-                orderId: id
-              })
-            }).catch(e => console.error("Erreur email annulation:", e));
-         }
+      // Send in-app notification to the customer
+      if (orderToUpdate && orderToUpdate.userId) {
+        let title = '';
+        let message = '';
+        let type: 'success' | 'info' | 'warning' = 'info';
+
+        switch (newStatus) {
+          case 'confirmed':
+            title = 'Commande confirmée !';
+            message = `Bonne nouvelle ! Votre commande #${id} a été validée par notre équipe.`;
+            type = 'success';
+            break;
+          case 'shipped':
+            title = 'Commande expédiée !';
+            message = `Votre commande #${id} est en route ! Préparez-vous à la recevoir.`;
+            type = 'info';
+            break;
+          case 'delivered':
+            title = 'Commande livrée !';
+            message = `Votre commande #${id} a été livrée. Profitez bien de vos produits !`;
+            type = 'success';
+            break;
+          case 'cancelled':
+            title = 'Commande annulée';
+            message = `Nous sommes au regret de vous informer que votre commande #${id} a été annulée.`;
+            type = 'warning';
+            break;
+          default:
+            title = 'Statut de commande mis à jour';
+            message = `Le statut de votre commande #${id} est maintenant : ${newStatus}.`;
+            type = 'info';
+        }
+
+        if (title) {
+          sendNotification(
+            orderToUpdate.userId,
+            title,
+            message,
+            type,
+            '/account'
+          );
+        }
       }
 
-      toast.success('Statut mis à jour et un email a été déclenché si nécessaire.');
+      toast.success('Statut mis à jour avec succès.');
     } catch (err) {
       console.error(err);
       toast.error('Erreur lors du changement de statut.');

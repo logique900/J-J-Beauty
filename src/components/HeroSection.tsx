@@ -33,7 +33,7 @@ export function HeroSection({ onExplore }: { onExplore: () => void }) {
     if (slides.length <= 1) return;
     const timer = setInterval(() => {
       setCurrent((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
-    }, 6000);
+    }, 7000);
     return () => clearInterval(timer);
   }, [slides.length]);
 
@@ -42,8 +42,8 @@ export function HeroSection({ onExplore }: { onExplore: () => void }) {
 
   if (loading) {
     return (
-      <div className="w-full h-[60vh] min-h-[450px] bg-brand-100 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
+      <div className="w-full h-[75vh] min-h-[600px] bg-[#050505] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-white/50 animate-spin" />
       </div>
     );
   }
@@ -53,46 +53,50 @@ export function HeroSection({ onExplore }: { onExplore: () => void }) {
   }
 
   return (
-    <div className="relative w-full h-[60vh] min-h-[450px] overflow-hidden bg-brand-950 group">
+    <div className="relative w-full h-[85vh] min-h-[600px] overflow-hidden bg-[#050505] group">
       <AnimatePresence mode="wait">
         <motion.div
            key={slides[current]?.id || current}
           initial={{ opacity: 0, scale: 1.05 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.8 }}
+          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
           className="absolute inset-0"
         >
           <img 
             src={slides[current].image} 
             alt={slides[current].title} 
-            className="w-full h-full object-cover opacity-80" 
+            className="w-full h-full object-cover opacity-70" 
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+          {/* Subtle gradient to ensure text readability but keeps it luxury dark */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/80" />
         </motion.div>
       </AnimatePresence>
 
-      <div className="absolute inset-0 flex flex-col justify-center px-4 sm:px-8 lg:px-16 max-w-7xl mx-auto">
+      <div className="absolute inset-0 flex flex-col justify-end pb-24 px-6 md:px-12 lg:px-24">
         <motion.div
           key={`text-${slides[current]?.id || current}`}
-          initial={{ y: 30, opacity: 0 }}
+          initial={{ y: 40, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-          className="max-w-xl text-white"
+          transition={{ delay: 0.4, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="max-w-4xl text-white"
         >
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold mb-4 drop-shadow-lg leading-tight">
-            {slides[current].title}
-          </h1>
           {slides[current].subtitle && (
-            <p className="text-lg sm:text-xl font-medium mb-8 text-gray-200 drop-shadow-md">
+            <p className="text-xs sm:text-sm font-sans font-semibold tracking-[0.2em] uppercase mb-6 opacity-80 text-orange-200">
               {slides[current].subtitle}
             </p>
           )}
+          <h1 className="text-6xl sm:text-7xl lg:text-[7rem] font-serif font-light mb-8 leading-[0.9] tracking-tight">
+            {slides[current].title}
+          </h1>
           <button 
             onClick={onExplore}
-            className="px-8 py-3 bg-white text-brand-950 font-bold rounded-full hover:bg-brand-50 transition shadow-xl hover:-translate-y-0.5"
+            className="group/btn relative inline-flex items-center gap-4 px-8 py-4 border border-white/30 rounded-full hover:bg-white hover:text-black transition-colors duration-500 overflow-hidden"
           >
-            {slides[current].cta || 'Découvrir'}
+            <span className="text-xs font-sans tracking-[0.15em] uppercase font-bold relative z-10 transition-colors duration-500">
+              {slides[current].cta || 'Découvrir'}
+            </span>
+            <div className="w-8 h-px bg-white group-hover/btn:bg-black transition-colors duration-500 relative z-10" />
           </button>
         </motion.div>
       </div>
@@ -100,29 +104,31 @@ export function HeroSection({ onExplore }: { onExplore: () => void }) {
       {slides.length > 1 && (
         <>
           {/* Navigation Controls */}
-          <button 
-            onClick={prevSlide} 
-            className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/30 opacity-0 group-hover:opacity-100 transition shadow-lg border border-white/20"
-            aria-label="Previous image"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          
-          <button 
-            onClick={nextSlide} 
-            className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/30 opacity-0 group-hover:opacity-100 transition shadow-lg border border-white/20"
-            aria-label="Next image"
-          >
-            <ChevronRight className="w-6 h-6" />
-          </button>
+          <div className="absolute right-6 md:right-12 bottom-24 flex items-center gap-4">
+            <button 
+              onClick={prevSlide} 
+              className="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center text-white/70 hover:text-white hover:border-white/60 transition-all duration-300 backdrop-blur-sm"
+              aria-label="Previous image"
+            >
+              <ChevronLeft className="w-5 h-5 -ml-0.5" />
+            </button>
+            
+            <button 
+              onClick={nextSlide} 
+              className="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center text-white/70 hover:text-white hover:border-white/60 transition-all duration-300 backdrop-blur-sm"
+              aria-label="Next image"
+            >
+              <ChevronRight className="w-5 h-5 -mr-0.5" />
+            </button>
+          </div>
 
           {/* Indicators */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
+          <div className="absolute top-1/2 -translate-y-1/2 right-6 md:right-12 flex flex-col gap-3">
             {slides.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => setCurrent(idx)}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${current === idx ? 'w-8 bg-white' : 'bg-white/50 hover:bg-white/80'}`}
+                className={`w-1 transition-all duration-500 ${current === idx ? 'h-12 bg-white' : 'h-3 bg-white/30 hover:bg-white/60'}`}
                 aria-label={`Go to slide ${idx + 1}`}
               />
             ))}

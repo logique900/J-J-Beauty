@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import { Package, Truck, CheckCircle2, Clock, XCircle, ArrowRight, Download, RotateCcw, XSquare } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { toast } from '../lib/toast';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export function OrderHistory({ onNavigateToProduct }: { onNavigateToProduct: (id: string) => void }) {
   const { user } = useAuth();
@@ -74,6 +76,139 @@ export function OrderHistory({ onNavigateToProduct }: { onNavigateToProduct: (id
       });
       openCart();
     }
+  };
+
+  const handleDownloadInvoice = (order: any) => {
+    const doc = new jsPDF();
+    
+    let orderDate = '';
+    if (order.createdAt) {
+       const d = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+       // Handle invalid date strings
+       if (!isNaN(d.getTime())) {
+         orderDate = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+       } else {
+         orderDate = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+       }
+    } else {
+       orderDate = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    // Design: Header background
+    doc.setFillColor(250, 250, 250);
+    doc.rect(0, 0, 210, 40, 'F');
+    doc.setDrawColor(230, 230, 230);
+    doc.line(0, 40, 210, 40);
+    
+    // Logo text
+    doc.setFontSize(28);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('J&J BEAUTY', 14, 26);
+    
+    // Invoice Title
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(120, 120, 120);
+    doc.text('FACTURE', 196, 26, { align: 'right' });
+    
+    // Order info
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('N° de commande :', 14, 55);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${order.id}`, 50, 55);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.text('Date :', 14, 62);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${orderDate}`, 50, 62);
+    
+    if (order.shippingAddress) {
+      // Billing Info
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Adressé à :', 14, 80);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`, 14, 87);
+      doc.text(`${order.shippingAddress.address1}`, 14, 93);
+      if (order.shippingAddress.address2) {
+        doc.text(`${order.shippingAddress.address2}`, 14, 99);
+        doc.text(`${order.shippingAddress.zipCode} ${order.shippingAddress.city}`, 14, 105);
+        if (order.shippingAddress.phone) {
+          doc.text(`Tél: ${order.shippingAddress.phone}`, 14, 111);
+        }
+      } else {
+        doc.text(`${order.shippingAddress.zipCode} ${order.shippingAddress.city}`, 14, 99);
+        if (order.shippingAddress.phone) {
+          doc.text(`Tél: ${order.shippingAddress.phone}`, 14, 105);
+        }
+      }
+    }
+
+    const startY = (order.shippingAddress && order.shippingAddress.address2) 
+      ? (order.shippingAddress.phone ? 121 : 115) 
+      : (order.shippingAddress && order.shippingAddress.phone ? 115 : 109);
+    
+    const tableData = (order.items || []).map((item: any) => [
+      item.name || item.product?.name || 'Produit inconnu',
+      item.quantity.toString(),
+      `${item.price.toFixed(2)} DT`,
+      `${(item.price * item.quantity).toFixed(2)} DT`
+    ]);
+
+    autoTable(doc, {
+      startY,
+      head: [['Article', 'Qté', 'Prix unitaire', 'Montant']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [0, 0, 0], textColor: 255, fontStyle: 'bold', halign: 'center' },
+      styles: { fontSize: 10, cellPadding: 6, textColor: 20 },
+      alternateRowStyles: { fillColor: [250, 250, 250] },
+      columnStyles: {
+        0: { halign: 'left' },
+        1: { halign: 'center' },
+        2: { halign: 'right' },
+        3: { halign: 'right' }
+      }
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY + 15;
+    
+    // Fix subtotal and shipping calculations for older orders
+    const itemsSubtotal = (order.items || []).reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
+    const subtotal = order.subtotal || itemsSubtotal || order.totalAmount;
+    
+    let shippingCost = order.shippingCost;
+    if (shippingCost === undefined) {
+      shippingCost = Math.max(0, order.totalAmount - itemsSubtotal);
+    }
+
+    doc.setFont('helvetica', 'normal');
+    doc.text('Sous-total:', 140, finalY);
+    doc.text(`${subtotal.toFixed(2)} DT`, 196, finalY, { align: 'right' });
+    
+    doc.text('Frais de livraison:', 140, finalY + 8);
+    doc.text(shippingCost === 0 ? 'Offerte' : `${shippingCost.toFixed(2)} DT`, 196, finalY + 8, { align: 'right' });
+    
+    doc.setDrawColor(200, 200, 200);
+    doc.line(140, finalY + 12, 196, finalY + 12);
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Total:', 140, finalY + 20);
+    doc.text(`${(order.totalAmount || 0).toFixed(2)} DT`, 196, finalY + 20, { align: 'right' });
+
+    // Footer
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(150, 150, 150);
+    doc.text('Merci pour votre confiance.', 105, 280, { align: 'center' });
+    doc.text('J&J BEAUTY - contact@jjbeauty.com', 105, 285, { align: 'center' });
+
+    doc.save(`Facture_${order.id}.pdf`);
   };
 
   if (loading) return <div className="py-20 text-center text-brand-500">Chargement de vos commandes...</div>;
@@ -156,7 +291,7 @@ export function OrderHistory({ onNavigateToProduct }: { onNavigateToProduct: (id
                  <button onClick={() => handleReorder(selectedOrder)} className="flex items-center gap-2 px-6 py-3 bg-brand-900 text-white font-bold rounded-xl hover:bg-brand-950 transition shadow-lg shadow-brand-900/20">
                    <RotateCcw className="w-4 h-4" /> Acheter à nouveau
                  </button>
-                 <button className="flex items-center gap-2 px-6 py-3 border border-brand-300 dark:border-brand-400 font-bold rounded-xl bg-white dark:bg-brand-100 hover:bg-brand-50 dark:hover:bg-brand-200 transition text-brand-700">
+                 <button onClick={() => handleDownloadInvoice(selectedOrder)} className="flex items-center gap-2 px-6 py-3 border border-brand-300 dark:border-brand-400 font-bold rounded-xl bg-white dark:bg-brand-100 hover:bg-brand-50 dark:hover:bg-brand-200 transition text-brand-700">
                    <Download className="w-4 h-4" /> Télécharger la facture
                  </button>
                  {canCancel && (

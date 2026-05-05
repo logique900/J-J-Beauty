@@ -5,6 +5,7 @@ import { Category } from '../types';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { NotificationCenter } from './NotificationCenter';
 
 interface HeaderProps {
   onNavigateToCategory: (categoryId: string) => void;
@@ -104,6 +105,8 @@ export function Header({
                 <User className="w-5 h-5" />
               )}
             </button>
+            
+            <NotificationCenter />
 
             <button className="hidden md:block text-brand-600 dark:text-brand-700 hover:text-brand-900 dark:hover:text-brand-800 transition p-1">
               <Heart className="w-5 h-5" />
@@ -120,18 +123,21 @@ export function Header({
         </div>
 
         {/* Bottom Row: Desktop Navigation */}
-        <nav className="hidden lg:flex items-center h-12 gap-10 overflow-x-auto no-scrollbar border-t border-brand-100 dark:border-brand-200">
+        <nav className="hidden lg:flex items-center h-14 justify-center gap-10 overflow-x-auto no-scrollbar border-t border-gray-100">
           {displayCategories.map((category) => (
             <div key={category.id} className="h-full group flex items-center relative">
               <button 
                 onClick={() => onNavigateToCategory(category.id)}
-                className="text-[15px] font-medium text-blue-600 dark:text-blue-500 hover:text-blue-800 dark:hover:text-blue-400 whitespace-nowrap transition-colors py-2 flex items-center gap-1 group-hover:underline"
+                className="text-[11px] font-bold uppercase tracking-[0.15em] text-gray-600 hover:text-black whitespace-nowrap transition-colors py-4 flex items-center gap-1"
               >
                 {category.name}
               </button>
               
+              {/* Animated bottom border on hover */}
+              <div className="absolute bottom-0 left-0 w-full h-[2px] bg-black scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+
               {/* Mega Menu Dropdown */}
-              <div className="fixed top-32 left-0 w-full bg-white dark:bg-brand-100 border-t border-brand-200 dark:border-brand-300 shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-in-out pointer-events-none group-hover:pointer-events-auto z-50">
+              <div className="fixed top-[136px] left-0 w-full bg-white border-t border-gray-100 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-in-out pointer-events-none group-hover:pointer-events-auto z-50">
                 <div className="max-w-7xl mx-auto px-8 py-10 flex gap-12">
                   
                   {/* Category Columns */}

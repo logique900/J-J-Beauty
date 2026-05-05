@@ -67,16 +67,7 @@ export function CartPage({ onNavigateHome, onNavigateToProduct, allProducts = []
       <div className="bg-brand-50 dark:bg-brand-100 border-b border-brand-100 dark:border-brand-200 py-10 transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-4xl font-serif font-extrabold text-brand-950 dark:text-brand-900 mb-4 tracking-tight">Mon Panier ({items.reduce((a, b) => a + b.quantity, 0)} articles)</h1>
-          <div className="max-w-xl">
-             <p className="text-sm text-brand-700 dark:text-brand-800 font-bold mb-3 uppercase tracking-wider">
-                {amountToFreeShipping > 0 
-                  ? <>Plus que <span className="text-accent-600 dark:text-accent-500">{amountToFreeShipping.toFixed(2)} DT</span> pour la livraison gratuite !</>
-                  : <span className="text-green-600 dark:text-green-400">Félicitations ! Livraison offerte</span>}
-              </p>
-              <div className="w-full h-3 bg-brand-200 dark:bg-brand-300 rounded-full overflow-hidden shadow-inner font-sans">
-                <div className={`h-full transition-all duration-700 ease-out ${amountToFreeShipping === 0 ? 'bg-green-500' : 'bg-brand-900 shadow-lg'}`} style={{ width: `${progressPercent}%` }} />
-              </div>
-          </div>
+
         </div>
       </div>
 
