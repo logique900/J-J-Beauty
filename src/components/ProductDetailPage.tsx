@@ -312,6 +312,22 @@ export function ProductDetailPage({ product, onBack, onNavigate, allProducts = [
                       <p className="font-medium text-black">{product.careInstructions || 'Appliquer sur une peau nettoyée matin et soir.'}</p>
                     </div>
                   </div>
+                )},
+                { id: 'faq', label: 'Questions Fréquentes', content: (
+                  <div className="space-y-4 font-sans text-sm">
+                    <div>
+                      <h4 className="font-bold text-black mb-1">Puis-je utiliser ce produit sur une peau sensible ?</h4>
+                      <p className="text-gray-600">Oui, tous nos produits J&J Beauty sont testés dermatologiquement et formulés pour minimiser les risques d'allergies.</p>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-black mb-1">Combien de temps dure la livraison ?</h4>
+                      <p className="text-gray-600">La livraison standard prend généralement entre 2 et 4 jours ouvrés partout en Tunisie.</p>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-black mb-1">Comment puis-je suivre ma commande ?</h4>
+                      <p className="text-gray-600">Vous recevrez un email avec un numéro de suivi dès que votre commande sera expédiée.</p>
+                    </div>
+                  </div>
                 )}
               ].map((tab) => (
                 <div key={tab.id} className="border-b border-gray-200">

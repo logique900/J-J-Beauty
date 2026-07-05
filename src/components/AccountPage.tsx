@@ -144,7 +144,7 @@ export function AccountPage({ onNavigateHome, onNavigateToProduct, onNavigateToA
     const q = query(collection(db, 'passkeys'), where('userId', '==', user.id));
     const unsub = onSnapshot(q, (snap) => {
       setPasskeys(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
+    }, (err) => console.error("Passkeys error:", err));
     return () => unsub();
   }, [user]);
 

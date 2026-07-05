@@ -57,10 +57,10 @@ export function AdminOrderListener() {
               }
             }
           }
-        });
+        }, (err) => console.error("AdminOrderListener error:", err));
       }
       isFirstLoad.current = false;
-    });
+    }, (err) => console.error("AdminOrderListener error:", err));
 
     return () => unsubscribe();
   }, [isAdmin]);

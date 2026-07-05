@@ -3,7 +3,8 @@ import {
   TrendingUp, Package, ShoppingCart, Users, AlertTriangle, 
   ChevronDown, ArrowUpRight, ArrowDownRight, RefreshCcw, Bell,
   LayoutDashboard, PieChart as PieChartIcon, ShoppingBag, 
-  Users2, Box, Tag, Globe, Settings, Menu, X, LogOut, Search
+  Users2, Box, Tag, Globe, Settings, Menu, X, LogOut, Search,
+  MessageSquare
 } from 'lucide-react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
@@ -20,6 +21,7 @@ import { AdminCategories } from './AdminCategories';
 import { AdminBrands } from './AdminBrands';
 import { AdminSettings } from './AdminSettings';
 import { AdminHero } from './AdminHero';
+import { AdminMessages } from './AdminMessages';
 import { NotificationCenter } from '../NotificationCenter';
 import { subscribeToNotifications, AppNotification } from '../../services/notificationService';
 import { useAuth } from '../../context/AuthContext';
@@ -31,7 +33,7 @@ interface AdminDashboardProps {
   onBack: () => void;
 }
 
-type AdminTab = 'overview' | 'analytics' | 'orders' | 'customers' | 'products' | 'categories' | 'brands' | 'settings' | 'hero';
+type AdminTab = 'overview' | 'analytics' | 'orders' | 'customers' | 'products' | 'categories' | 'brands' | 'settings' | 'hero' | 'messages';
 
 export function AdminDashboard({ onBack }: AdminDashboardProps) {
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -306,6 +308,8 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
         return <AdminSettings />;
       case 'hero':
         return <AdminHero />;
+      case 'messages':
+        return <AdminMessages />;
       case 'overview':
       default:
         return (
@@ -496,6 +500,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
     { id: 'analytics', label: 'Analytiques', icon: PieChartIcon },
     { id: 'orders', label: 'Commandes', icon: ShoppingCart },
     { id: 'customers', label: 'Clients', icon: Users2 },
+    { id: 'messages', label: 'Questions', icon: MessageSquare },
     { id: 'products', label: 'Produits', icon: ShoppingBag },
     { id: 'categories', label: 'Catégories', icon: LayoutDashboard },
     { id: 'brands', label: 'Marques', icon: Globe },

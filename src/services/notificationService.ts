@@ -46,15 +46,22 @@ export function subscribeToNotifications(userId: string, isAdmin: boolean, callb
   if (!userId) return () => {};
 
   // If admin, we also want to see notifications targeted at 'admin'
-  const filterIds = [userId];
-  if (isAdmin) filterIds.push('admin');
-
-  const q = query(
-    collection(db, 'notifications'),
-    where('userId', 'in', filterIds),
-    orderBy('createdAt', 'desc'),
-    limit(50)
-  );
+  let q;
+  if (isAdmin) {
+    q = query(
+      collection(db, 'notifications'),
+      where('userId', 'in', [userId, 'admin']),
+      orderBy('createdAt', 'desc'),
+      limit(50)
+    );
+  } else {
+    q = query(
+      collection(db, 'notifications'),
+      where('userId', '==', userId),
+      orderBy('createdAt', 'desc'),
+      limit(50)
+    );
+  }
 
   return onSnapshot(q, (snapshot) => {
     const notifications = snapshot.docs.map(doc => ({
@@ -62,7 +69,7 @@ export function subscribeToNotifications(userId: string, isAdmin: boolean, callb
       ...doc.data()
     })) as AppNotification[];
     callback(notifications);
-  });
+  }, (err) => console.error("Notifications error:", err));
 }
 
 /**

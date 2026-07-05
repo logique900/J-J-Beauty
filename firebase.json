@@ -1,5 +1,6 @@
 {
   "firestore": {
+    "database": "ai-studio-jjbeauty-a26d3aa6-6924-4222-a0ce-0a1970eb4843",
     "rules": "firestore.rules"
   },
   "storage": {

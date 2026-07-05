@@ -1,7 +1,26 @@
 import React, { useState, useMemo } from 'react';
 import { FilterState, ProductColor, Product } from '../types';
-import { X, ChevronDown, Check, Star } from 'lucide-react';
+import { X, ChevronDown, Check, Star, ChevronUp } from 'lucide-react';
 import { mockBrands } from '../data/navigation';
+
+function Accordion({ title, children, defaultOpen = true }: { title: string, children: React.ReactNode, defaultOpen?: boolean }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  return (
+    <div className="border-t border-brand-200 py-6 transition-colors">
+      <button 
+        type="button" 
+        onClick={() => setIsOpen(!isOpen)} 
+        className="flex w-full items-center justify-between group"
+      >
+        <h3 className="text-sm font-bold text-brand-950 uppercase tracking-wider group-hover:text-black transition-colors">{title}</h3>
+        {isOpen ? <ChevronUp className="w-4 h-4 text-brand-600" /> : <ChevronDown className="w-4 h-4 text-brand-600" />}
+      </button>
+      <div className={`mt-4 space-y-4 transition-all duration-300 ease-in-out ${isOpen ? 'opacity-100 max-h-[1000px]' : 'opacity-0 max-h-0 overflow-hidden'}`}>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 interface FilterSidebarProps {
   isOpen: boolean;
@@ -86,7 +105,7 @@ export function FilterSidebar({
       )}
 
       {/* Sidebar Panel */}
-      <div className={`fixed lg:static top-0 right-0 z-[70] h-full w-[340px] max-w-[100vw] bg-brand-50 shadow-2xl lg:shadow-none border-l lg:border-l-0 lg:border-r border-brand-200 flex flex-col transition-transform duration-300 ease-in-out ${
+      <div className={`fixed lg:static top-0 right-0 z-[70] h-full w-full sm:w-[340px] bg-brand-50 shadow-2xl lg:shadow-none border-l lg:border-l-0 lg:border-r border-brand-200 flex flex-col transition-transform duration-300 ease-in-out ${
         isOpen ? 'translate-x-0 lg:translate-x-0' : 'translate-x-full lg:translate-x-0 lg:hidden'
       }`}>
         
@@ -122,9 +141,7 @@ export function FilterSidebar({
           </div>
 
           {/* Price Range */}
-          <div>
-            <h3 className="text-sm font-bold text-gray-900 dark:text-brand-900 mb-4 uppercase tracking-wider">Prix</h3>
-            
+          <Accordion title="Prix" defaultOpen={true}>
             <div className="flex items-end gap-1 h-12 mb-2">
                {histogramBars.map((val, i) => (
                  <div key={i} className="flex-1 bg-gray-200 dark:bg-brand-200 rounded-t-sm" style={{ height: `${(val / maxBar) * 100}%` }}></div>
@@ -161,11 +178,10 @@ export function FilterSidebar({
                onChange={(e) => setFilters(prev => ({ ...prev, priceMax: Number(e.target.value) }))}
                className="w-full mt-4 accent-black dark:accent-brand-900"
             />
-          </div>
+          </Accordion>
 
           {/* Brands */}
-          <div className="border-t border-gray-100 dark:border-brand-200 pt-6 transition-colors">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-brand-900 mb-4 uppercase tracking-wider">Marques</h3>
+          <Accordion title="Marques" defaultOpen={true}>
             <div className="space-y-3">
               {(allBrands.length > 0 ? allBrands : mockBrands).map(brand => (
                 <label key={brand.id} className="flex items-center group cursor-pointer">
@@ -178,12 +194,11 @@ export function FilterSidebar({
                 </label>
               ))}
             </div>
-          </div>
+          </Accordion>
 
           {/* Collections / Subcategories */}
           {allCategories.length > 0 && (
-            <div className="border-t border-brand-200 pt-6 transition-colors">
-              <h3 className="text-sm font-bold text-brand-950 mb-4 uppercase tracking-wider">Collections</h3>
+            <Accordion title="Collections" defaultOpen={true}>
               <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                 {allCategories.map(cat => (
                   <div key={cat.id} className="space-y-2">
@@ -203,12 +218,11 @@ export function FilterSidebar({
                   </div>
                 ))}
               </div>
-            </div>
+            </Accordion>
           )}
 
           {/* Sizes */}
-          <div className="border-t border-brand-200 pt-6 transition-colors">
-            <h3 className="text-sm font-bold text-brand-950 mb-4 uppercase tracking-wider">Tailles</h3>
+          <Accordion title="Tailles" defaultOpen={true}>
             <div className="flex flex-wrap gap-2">
               {availableSizes.map(size => (
                 <button
@@ -224,11 +238,10 @@ export function FilterSidebar({
                 </button>
               ))}
             </div>
-          </div>
+          </Accordion>
 
           {/* Colors */}
-          <div className="border-t border-brand-200 pt-6 transition-colors">
-            <h3 className="text-sm font-bold text-brand-950 mb-4 uppercase tracking-wider">Couleurs</h3>
+          <Accordion title="Couleurs" defaultOpen={true}>
             <div className="flex flex-wrap gap-3">
               {availableColors.map(color => (
                 <button
@@ -250,11 +263,10 @@ export function FilterSidebar({
                 </button>
               ))}
             </div>
-          </div>
+          </Accordion>
 
           {/* Minimum Rating */}
-          <div className="border-t border-brand-200 pt-6 transition-colors">
-            <h3 className="text-sm font-bold text-brand-950 mb-4 uppercase tracking-wider">Note minimale</h3>
+          <Accordion title="Note minimale" defaultOpen={true}>
             <div className="space-y-2">
               {[4, 3, 2].map(rating => (
                 <label key={rating} className="flex items-center group cursor-pointer">
@@ -284,7 +296,7 @@ export function FilterSidebar({
                   <span className="ml-3 text-sm text-brand-800">Toutes les notes</span>
                 </label>
             </div>
-          </div>
+          </Accordion>
 
         </div>
 

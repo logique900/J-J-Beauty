@@ -22,10 +22,10 @@ service cloud.firestore {
     // Hardened isAdmin check - Priority email check then DB check
     function isAdmin() {
       return isSignedIn() && (
-        (request.auth.token.get('email', '').lower() == 'logique900@gmail.com') ||
-        (request.auth.token.get('email', '').lower() == 'admin@j-jbeauty.tn') ||
+        (request.auth.token.email != null && request.auth.token.email.lower() == 'logique900@gmail.com') ||
+        (request.auth.token.email != null && request.auth.token.email.lower() == 'admin@j-jbeauty.tn') ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'user') == 'admin')
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
     }
     

@@ -21,13 +21,13 @@ export function ProductCard({ product, viewMode, onQuickView }: ProductCardProps
 
   return (
     <div
-      className={`group relative flex bg-transparent transition-all duration-500 ${
-        isList ? 'flex-row gap-6' : 'flex-col'
+      className={`group relative flex bg-transparent transition-all duration-500 rounded-xl hover:shadow-lg p-3 ${
+        isList ? 'flex-row gap-6 items-center' : 'flex-col'
       }`}
     >
       {/* Image Container */}
       <div 
-        className={`relative overflow-hidden shrink-0 bg-[#F5F5F3] dark:bg-brand-100 dark:brightness-95 ${
+        className={`relative overflow-hidden shrink-0 bg-[#F5F5F3] dark:bg-brand-100 dark:brightness-95 rounded-lg ${
           isList ? 'w-48 sm:w-64 h-full aspect-[3/4]' : 'w-full aspect-[3/4]'
         }`}
       >
@@ -120,7 +120,7 @@ export function ProductCard({ product, viewMode, onQuickView }: ProductCardProps
           <button
             disabled={product.stock === 0}
             onClick={(e) => { e.stopPropagation(); addToCart(product, 1); }}
-            className={`relative z-20 flex w-full items-center justify-center gap-2 px-4 py-2 bg-transparent border border-gray-200 dark:border-brand-300 text-black dark:text-brand-900 text-[10px] font-bold uppercase tracking-[0.1em] hover:border-black dark:hover:border-brand-900 hover:bg-black dark:hover:bg-brand-900 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300`}
+            className={`relative z-20 flex w-full items-center justify-center gap-2 px-4 py-2 bg-transparent border border-gray-200 dark:border-brand-300 rounded-lg text-black dark:text-brand-900 text-[10px] font-bold uppercase tracking-[0.1em] hover:border-black dark:hover:border-brand-900 hover:bg-black dark:hover:bg-brand-900 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300`}
           >
              <ShoppingBag className="w-3.5 h-3.5" />
              Ajouter au panier

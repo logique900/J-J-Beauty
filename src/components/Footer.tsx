@@ -49,13 +49,13 @@ export function Footer() {
               L'excellence cosmétique à votre portée. Nous croyons en une beauté authentique, naturelle et responsable.
             </p>
             <div className="flex items-center gap-4 pt-2">
-              <a href="#" className="w-10 h-10 rounded-full bg-brand-200 flex items-center justify-center text-brand-700 hover:text-brand-50 hover:bg-brand-900 transition-all">
+              <a href="#" className="w-10 h-10 rounded-full bg-brand-200 flex items-center justify-center text-brand-700 hover:text-brand-50 hover:bg-brand-900 transition-all" target="_blank" rel="noopener noreferrer">
                 <Instagram className="w-5 h-5" />
               </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-brand-200 flex items-center justify-center text-brand-700 hover:text-brand-50 hover:bg-brand-900 transition-all">
+              <a href="https://www.facebook.com/people/JJ-Beauty/100093294889541/" className="w-10 h-10 rounded-full bg-brand-200 flex items-center justify-center text-brand-700 hover:text-brand-50 hover:bg-brand-900 transition-all" target="_blank" rel="noopener noreferrer">
                 <Facebook className="w-5 h-5" />
               </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-brand-200 flex items-center justify-center text-brand-700 hover:text-brand-50 hover:bg-brand-900 transition-all">
+              <a href="#" className="w-10 h-10 rounded-full bg-brand-200 flex items-center justify-center text-brand-700 hover:text-brand-50 hover:bg-brand-900 transition-all" target="_blank" rel="noopener noreferrer">
                 <Twitter className="w-5 h-5" />
               </a>
             </div>
@@ -77,10 +77,10 @@ export function Footer() {
           <div>
             <h4 className="text-brand-950 font-semibold mb-6 transition-colors">Assistance</h4>
             <ul className="space-y-3 text-sm text-brand-700 transition-colors">
-              <li><a href="#" className="hover:text-brand-950 transition-colors">FAQ</a></li>
+              <li><button onClick={() => window.dispatchEvent(new CustomEvent('nav-to-contact'))} className="hover:text-brand-950 transition-colors">FAQ</button></li>
               <li><a href="#" className="hover:text-brand-950 transition-colors">Suivi de commande</a></li>
               <li><a href="#" className="hover:text-brand-950 transition-colors">Livraisons & Retours</a></li>
-              <li><a href="#" className="hover:text-brand-950 transition-colors">Nous contacter</a></li>
+              <li><button onClick={() => window.dispatchEvent(new CustomEvent('nav-to-contact'))} className="hover:text-brand-950 transition-colors">Nous contacter</button></li>
               <li><a href="#" className="hover:text-brand-950 transition-colors">Points de vente</a></li>
             </ul>
           </div>
@@ -91,15 +91,11 @@ export function Footer() {
             <ul className="space-y-4 text-sm text-brand-700 transition-colors">
               <li className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 shrink-0 text-brand-600 mt-0.5" />
-                <span>123 Avenue des Champs-Élysées<br/>75008 Paris, France</span>
+                <span>J&J Beauty<br/>Khmouda 1212 Elagba<br/>En face Allo Pizza</span>
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="w-5 h-5 shrink-0 text-brand-600" />
-                <span>+33 1 23 45 67 89</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Mail className="w-5 h-5 shrink-0 text-brand-600" />
-                <span>contact@jjbeauty.com</span>
+                <span>22094089</span>
               </li>
             </ul>
           </div>

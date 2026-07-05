@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { LayoutGrid, Grid2X2, Grid3X3, List, ChevronDown, SlidersHorizontal, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Product, ViewMode, FilterState, SortOption } from './types';
 import { mockCategories, mockBrands } from './data/navigation';
 import { ProductCard } from './components/ProductCard';
@@ -16,6 +17,7 @@ import { CartPage } from './components/CartPage';
 import { CheckoutPage } from './components/CheckoutPage';
 import { AuthModal } from './components/AuthModal';
 import { AccountPage } from './components/AccountPage';
+import { ContactPage } from './components/ContactPage';
 import { ToastContainer } from './components/ToastContainer';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { PWAManager } from './components/PWAManager';
@@ -26,6 +28,7 @@ import { getOrSeedProducts, getOrSeedCategories, getOrSeedBrands, getOrSeedColle
 import { getAuth } from 'firebase/auth';
 import { onSnapshot, collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
+import { WhatsAppWidget } from './components/WhatsAppWidget';
 import { HeroSection } from './components/HeroSection';
 import { CategoryShowcase } from './components/CategoryShowcase';
 import { BrandShowcase } from './components/BrandShowcase';
@@ -77,6 +80,7 @@ type AppRoute =
   | { type: 'cart' }
   | { type: 'checkout' }
   | { type: 'account' }
+  | { type: 'contact' }
   | { type: 'admin' };
 
 const DEFAULT_FILTERS: FilterState = {
@@ -332,10 +336,12 @@ export default function App() {
 
     window.addEventListener('nav-to-cart', handleNavToCart);
     window.addEventListener('nav-to-checkout', handleNavToCheckout);
+    window.addEventListener('nav-to-contact', navHelpers.goToContact);
 
     return () => {
       window.removeEventListener('nav-to-cart', handleNavToCart);
       window.removeEventListener('nav-to-checkout', handleNavToCheckout);
+      window.removeEventListener('nav-to-contact', navHelpers.goToContact);
     };
   }, []);
 
@@ -345,6 +351,7 @@ export default function App() {
     goToBrand: (id: string) => { setRoute({ type: 'brand', id }); setQuickViewProduct(null); setIsSearchOpen(false); window.scrollTo({ top: 0 }); },
     goToProduct: (id: string) => { setRoute({ type: 'product', id }); setQuickViewProduct(null); setIsSearchOpen(false); window.scrollTo({ top: 0 }); },
     goToCart: () => { setRoute({ type: 'cart' }); setQuickViewProduct(null); setIsSearchOpen(false); window.scrollTo({ top: 0 }); },
+    goToContact: () => { setRoute({ type: 'contact' }); setQuickViewProduct(null); setIsSearchOpen(false); window.scrollTo({ top: 0 }); },
     goToAdmin: () => { setRoute({ type: 'admin' }); setQuickViewProduct(null); setIsSearchOpen(false); window.scrollTo({ top: 0 }); }
   };
 
@@ -378,6 +385,8 @@ export default function App() {
                 <CheckoutPage onNavigateHome={navHelpers.goHome} onNavigateToCart={navHelpers.goToCart} />
               ) : route.type === 'account' ? (
                 <AccountPage onNavigateHome={navHelpers.goHome} onNavigateToProduct={navHelpers.goToProduct} onNavigateToAdmin={navHelpers.goToAdmin} allProducts={allProducts} />
+              ) : route.type === 'contact' ? (
+                <ContactPage onNavigateHome={navHelpers.goHome} />
               ) : route.type === 'product' ? (
                 (() => {
                   const product = allProducts.find(p => p.id === (route as any).id);
@@ -397,8 +406,6 @@ export default function App() {
                       <HeroSection onExplore={() => {
                         document.getElementById('main-products')?.scrollIntoView({ behavior: 'smooth' });
                       }} />
-                      <CategoryShowcase categories={categories} onNavigateToCategory={navHelpers.goToCategory} />
-                      <BrandShowcase brands={brands} products={allProducts} onNavigateToBrand={navHelpers.goToBrand} />
                     </>
                   )}
                     {route.type === 'category' && (() => {
@@ -482,6 +489,34 @@ export default function App() {
                     {activeFiltersCount > 0 && (
                       <div className="flex flex-wrap items-center gap-2 mb-6">
                         <span className="text-sm font-medium text-gray-500 dark:text-brand-600 mr-2">Filtres actifs ({activeFiltersCount})</span>
+                        
+                        {/* Dynamic filter chips */}
+                        {filters.brands.map(b => (
+                          <span key={b} className="inline-flex items-center gap-1 px-3 py-1 bg-brand-100 text-brand-900 rounded-full text-xs font-medium">
+                            {b} <button onClick={() => setFilters(f => ({ ...f, brands: f.brands.filter(x => x !== b) }))}><X className="w-3 h-3 hover:text-black" /></button>
+                          </span>
+                        ))}
+                        {filters.sizes.map(s => (
+                          <span key={s} className="inline-flex items-center gap-1 px-3 py-1 bg-brand-100 text-brand-900 rounded-full text-xs font-medium">
+                            Taille: {s} <button onClick={() => setFilters(f => ({ ...f, sizes: f.sizes.filter(x => x !== s) }))}><X className="w-3 h-3 hover:text-black" /></button>
+                          </span>
+                        ))}
+                        {filters.colors.map(c => (
+                          <span key={c} className="inline-flex items-center gap-1 px-3 py-1 bg-brand-100 text-brand-900 rounded-full text-xs font-medium">
+                            {c} <button onClick={() => setFilters(f => ({ ...f, colors: f.colors.filter(x => x !== c) }))}><X className="w-3 h-3 hover:text-black" /></button>
+                          </span>
+                        ))}
+                        {filters.inStock && (
+                          <span className="inline-flex items-center gap-1 px-3 py-1 bg-brand-100 text-brand-900 rounded-full text-xs font-medium">
+                            En stock <button onClick={() => setFilters(f => ({ ...f, inStock: false }))}><X className="w-3 h-3 hover:text-black" /></button>
+                          </span>
+                        )}
+                        {filters.onSale && (
+                          <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
+                            Promotions <button onClick={() => setFilters(f => ({ ...f, onSale: false }))}><X className="w-3 h-3 hover:text-red-900" /></button>
+                          </span>
+                        )}
+
                         <button onClick={() => setFilters(DEFAULT_FILTERS)} className="text-sm font-medium text-accent-600 dark:text-accent-500 hover:text-accent-800 dark:hover:text-accent-400 underline ml-2">Tout effacer</button>
                       </div>
                     )}
@@ -489,13 +524,24 @@ export default function App() {
                     {!isDbLoaded ? (
                       <div className="flex flex-col items-center justify-center py-20 text-center"><h3 className="text-xl font-bold text-gray-500 dark:text-brand-600">Chargement des produits...</h3></div>
                     ) : visibleProductsList.length > 0 ? (
-                      <div className={`grid gap-6 md:gap-8 ${currentGridClass()}`}>
-                        {visibleProductsList.map(product => (
-                          <div key={product.id} className="cursor-pointer" onClick={() => navHelpers.goToProduct(product.id)}>
-                            <ProductCard product={product} viewMode={viewMode} onQuickView={(p) => setTimeout(() => setQuickViewProduct(p), 0)} />
-                          </div>
-                        ))}
-                      </div>
+                      <motion.div layout className={`grid gap-6 md:gap-8 ${currentGridClass()}`}>
+                        <AnimatePresence>
+                          {visibleProductsList.map(product => (
+                            <motion.div 
+                              layout
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.9 }}
+                              transition={{ duration: 0.3 }}
+                              key={product.id} 
+                              className="cursor-pointer" 
+                              onClick={() => navHelpers.goToProduct(product.id)}
+                            >
+                              <ProductCard product={product} viewMode={viewMode} onQuickView={(p) => setTimeout(() => setQuickViewProduct(p), 0)} />
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+                      </motion.div>
                     ) : (
                       <div className="flex flex-col items-center justify-center py-20 text-center"><h3 className="text-xl font-bold text-black dark:text-brand-900">Aucun produit</h3></div>
                     )}
@@ -536,6 +582,7 @@ export default function App() {
             products={allProducts}
           />
           <ToastContainer />
+          <WhatsAppWidget />
           <CartDrawer />
           <AuthModal />
         </div>

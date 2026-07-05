@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Search, Filter, Eye, Printer, Edit, CornerUpLeft, 
-  Check, Truck, Package, Download, X, Copy, ChevronLeft, MoreVertical
+  Check, Truck, Package, Download, X, Copy, ChevronLeft, MoreVertical,
+  MessageSquare
 } from 'lucide-react';
 import { db } from '../../lib/firebase';
 import { sendNotification } from '../../services/notificationService';
@@ -101,25 +102,8 @@ export function AdminOrders() {
           );
         }
 
-        // Send email notification to customer
-        if (orderToUpdate.email) {
-          getDoc(doc(db, 'settings', 'general')).then(settingsSnap => {
-            const senderEmail = settingsSnap.exists() ? settingsSnap.data().orderNotificationSenderEmail : 'onboarding@resend.dev';
-            
-            fetch(`${window.location.origin}/api/notifications/customer-status-update`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                orderId: id,
-                customerEmail: orderToUpdate.email,
-                customerName: orderToUpdate.customer,
-                newStatus: newStatus,
-                trackingNumber: orderToUpdate.trackingNumber || '',
-                senderEmail: senderEmail || 'onboarding@resend.dev'
-              })
-            }).catch(err => console.error("Email notification failed:", err));
-          }).catch(err => console.error("Settings fetch failed for notification:", err));
-        }
+        // Note: Email notifications via Resend have been removed.
+        // If you want to notify customers via WhatsApp in the future, you can implement a similar call here.
       }
 
       toast.success('Statut mis à jour avec succès.');
@@ -140,25 +124,7 @@ export function AdminOrders() {
       setShowRefundModal(false);
       toast.success('Remboursement effectué !');
 
-      // Trigger notification for refund
-      if (selectedOrder.email) {
-        getDoc(doc(db, 'settings', 'general')).then(settingsSnap => {
-          const senderEmail = settingsSnap.exists() ? settingsSnap.data().orderNotificationSenderEmail : 'onboarding@resend.dev';
-          
-          fetch(`${window.location.origin}/api/notifications/customer-status-update`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              orderId: selectedOrder.id,
-              customerEmail: selectedOrder.email,
-              customerName: selectedOrder.customer,
-              newStatus: 'refunded',
-              trackingNumber: '',
-              senderEmail: senderEmail || 'onboarding@resend.dev'
-            })
-          }).catch(err => console.error("Refund email notification failed:", err));
-        }).catch(err => console.error("Settings fetch failed for refund notification:", err));
-      }
+      // Note: Email notifications via Resend have been removed.
     } catch (err) {
       console.error(err);
       toast.error('Erreur.');
@@ -348,6 +314,16 @@ export function AdminOrders() {
                   <div className="flex justify-between w-48 text-brand-900 font-bold text-base pt-2 border-t border-brand-200"><span>Total:</span> <span>{selectedOrder.amount.toFixed(2)} DT</span></div>
                </div>
             </div>
+
+            {/* Order Notes / Questions */}
+            {selectedOrder.orderNotes && (
+              <div className="bg-orange-50 border border-orange-100 rounded-xl p-6 shadow-sm">
+                <h3 className="font-bold text-orange-900 mb-2 flex items-center gap-2 italic">
+                  <MessageSquare className="w-5 h-5" /> Questions ou notes du client
+                </h3>
+                <p className="text-brand-800 text-sm whitespace-pre-wrap leading-relaxed">&quot;{selectedOrder.orderNotes}&quot;</p>
+              </div>
+            )}
           </div>
 
           {/* Right Sidebar */}

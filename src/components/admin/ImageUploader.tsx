@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { auth } from '../../lib/firebase';
+import { auth, storage } from '../../lib/firebase';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { Upload, X, Check, Loader2, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -54,10 +55,10 @@ export function ImageUploader({ label, value, onChange, folder = 'categories', c
       }
 
       console.group(`Upload: ${file.name}`);
-      console.log(`Processing image locally for Base64 (circumventing Storage)...`);
+      console.log(`Processing image locally to WebP and uploading to Firebase Storage...`);
 
-      // Compress and convert to Base64 to bypass Firebase Storage quota/permissions
-      const compressAndGetBase64 = (file: File): Promise<string> => {
+      // Compress to WebP and Blob
+      const compressToWebP = (file: File): Promise<Blob> => {
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.readAsDataURL(file);
@@ -66,8 +67,8 @@ export function ImageUploader({ label, value, onChange, folder = 'categories', c
             img.src = event.target?.result as string;
             img.onload = () => {
               const canvas = document.createElement('canvas');
-              const MAX_WIDTH = 800; // Compress appropriately for Firestore document limits
-              const MAX_HEIGHT = 800;
+              const MAX_WIDTH = 1024; // Compress to max 1024x1024 as recommended
+              const MAX_HEIGHT = 1024;
               let width = img.width;
               let height = img.height;
 
@@ -87,14 +88,17 @@ export function ImageUploader({ label, value, onChange, folder = 'categories', c
               
               const ctx = canvas.getContext('2d');
               if (ctx) {
-                // Ensure transparent PNGs do not have black background when converting to JPEG
-                ctx.fillStyle = '#FFFFFF';
-                ctx.fillRect(0, 0, width, height);
                 ctx.drawImage(img, 0, 0, width, height);
               }
               
-              // Resolve with JPEG format and 0.8 quality to keep size small (~50-100KB)
-              resolve(canvas.toDataURL('image/jpeg', 0.8));
+              // Resolve with WebP format and 0.8 quality to keep size small (~150-200KB)
+              canvas.toBlob((blob) => {
+                if (blob) {
+                  resolve(blob);
+                } else {
+                  reject(new Error('Erreur de conversion de l\'image en WebP'));
+                }
+              }, 'image/webp', 0.8);
             };
             img.onerror = () => reject(new Error('Format d\'image invalide'));
           };
@@ -102,22 +106,37 @@ export function ImageUploader({ label, value, onChange, folder = 'categories', c
         });
       };
 
-      // Simulate a progress bar for better UX
-      const progressInterval = setInterval(() => {
-        setProgress(p => Math.min(p + 15, 90));
-      }, 100);
+      const webpBlob = await compressToWebP(file);
+      
+      const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.webp`;
+      const storageRef = ref(storage, fileName);
 
-      const base64Url = await compressAndGetBase64(file);
-      
-      clearInterval(progressInterval);
-      setProgress(100);
-      console.log('Image processing successful');
-      console.groupEnd();
-      
-      setTimeout(() => {
-        onChange(base64Url);
-        setUploading(false);
-      }, 300);
+      const uploadTask = uploadBytesResumable(storageRef, webpBlob, {
+        contentType: 'image/webp',
+      });
+
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const progressValue = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setProgress(progressValue);
+        },
+        (error) => {
+          console.error("Storage Upload Error:", error);
+          setError(`Erreur lors du téléchargement: ${error.message}`);
+          setUploading(false);
+          console.groupEnd();
+        },
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          console.log('Image upload successful. URL:', downloadURL);
+          console.groupEnd();
+          
+          onChange(downloadURL);
+          setUploading(false);
+          setProgress(100);
+        }
+      );
 
     } catch (err: any) {
       console.error("Local Image Compressor Error:", err);

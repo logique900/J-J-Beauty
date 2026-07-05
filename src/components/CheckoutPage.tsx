@@ -125,6 +125,9 @@ export function CheckoutPage({ onNavigateHome, onNavigateToCart }: CheckoutPageP
         createdAt: serverTimestamp()
       });
 
+      let adminWhatsApp = '+21612345678';
+      let whatsappEnabled = true;
+
       setCompletedOrder({
         id: easyOrderId,
         total: finalTotal,
@@ -132,7 +135,9 @@ export function CheckoutPage({ onNavigateHome, onNavigateToCart }: CheckoutPageP
         shippingCost: currentShippingCost,
         items: [...items],
         shippingAddress: { ...shippingAddress },
-        deliveryMethod
+        deliveryMethod,
+        whatsappNumber: adminWhatsApp,
+        whatsappEnabled: whatsappEnabled
       });
 
       // Send in-app notification to admin
@@ -144,31 +149,18 @@ export function CheckoutPage({ onNavigateHome, onNavigateToCart }: CheckoutPageP
         '/admin'
       );
 
-        // Trigger email/backend notification
+        // Fetch WhatsApp settings
         try {
           const settingsSnap = await getDoc(doc(db, 'settings', 'general'));
-          let adminEmail = 'admin@jjbeauty.com';
           if (settingsSnap.exists()) {
-            adminEmail = settingsSnap.data().orderNotificationEmail || adminEmail;
-          }
-          
-          const response = await fetch(`${window.location.origin}/api/notifications/admin-order`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              orderId: easyOrderId,
-              amount: finalTotal.toFixed(2),
-              customerName: shippingAddress.firstName + ' ' + shippingAddress.lastName,
-              adminEmail,
-              senderEmail: settingsSnap.data().orderNotificationSenderEmail || 'onboarding@resend.dev'
-            })
-          });
-
-          if (!response.ok) {
-            console.error("Notification API failed:", response.status);
+            adminWhatsApp = settingsSnap.data().whatsappNumber || adminWhatsApp;
+            whatsappEnabled = settingsSnap.data().whatsappEnabled !== false;
+            
+            // update completed order with real settings
+            setCompletedOrder(prev => prev ? {...prev, whatsappNumber: adminWhatsApp, whatsappEnabled: whatsappEnabled} : prev);
           }
         } catch (backendErr) {
-          console.error("Failed to send notification:", backendErr);
+          console.error("Failed to fetch settings:", backendErr);
         }
 
       if (newsletterOptIn && email) {
@@ -361,6 +353,22 @@ export function CheckoutPage({ onNavigateHome, onNavigateToCart }: CheckoutPageP
                  <button onClick={handleDownloadInvoice} className="text-[10px] font-bold uppercase tracking-[0.15em] text-black border-b border-transparent hover:border-black transition-colors pb-0.5">Télécharger la facture</button>
               </div>
            </div>
+
+           {(completedOrder as any).whatsappEnabled && (
+            <div className="bg-[#25D366]/10 border border-[#25D366]/20 p-10 mb-12 max-w-2xl w-full text-center">
+               <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#075E54] mb-4">Confirmation via WhatsApp</h3>
+               <p className="text-sm font-serif italic text-[#128C7E] mb-8">Pour un traitement plus rapide, vous pouvez envoyer les détails de votre commande directement sur notre WhatsApp.</p>
+               <a 
+                 href={`https://wa.me/${(completedOrder as any).whatsappNumber}?text=${encodeURIComponent(`*Nouvelle Commande J&J Beauty*\n\n*Numéro de commande:* #${completedOrder.id}\n*Client:* ${completedOrder.shippingAddress.firstName} ${completedOrder.shippingAddress.lastName}\n*Téléphone:* ${completedOrder.shippingAddress.phone || 'Non renseigné'}\n*Adresse:* ${completedOrder.shippingAddress.address1}, ${completedOrder.shippingAddress.zipCode} ${completedOrder.shippingAddress.city}\n\n*Produits:*\n${completedOrder.items.map((item: any) => `- ${item.quantity}x ${item.product.name} (${(item.product.price * item.quantity).toFixed(2)} DT)`).join('\n')}\n\n*Sous-total:* ${completedOrder.subtotal.toFixed(2)} DT\n*Livraison:* ${completedOrder.shippingCost === 0 ? 'Gratuite' : completedOrder.shippingCost.toFixed(2) + ' DT'}\n*Total:* ${completedOrder.total.toFixed(2)} DT${orderNotes ? `\n\n*Notes:*\n${orderNotes}` : ''}`)}`}
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 className="inline-flex items-center justify-center gap-3 w-full sm:w-auto bg-[#25D366] text-white px-10 py-4 text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-[#128C7E] transition-colors"
+               >
+                 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                 Envoyer ma commande
+               </a>
+            </div>
+           )}
 
            {!user && (
              <div className="bg-white border border-gray-100 p-10 mb-12 max-w-lg w-full text-center">
@@ -563,6 +571,17 @@ export function CheckoutPage({ onNavigateHome, onNavigateToCart }: CheckoutPageP
                           </label>
                         ))}
                       </div>
+                    </div>
+
+                    {/* Questions / Notes */}
+                    <div className="pt-6 border-t border-gray-100">
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4 flex items-center gap-3">Questions ou notes de commande (Optionnel)</h3>
+                      <textarea
+                        value={orderNotes}
+                        onChange={(e) => setOrderNotes(e.target.value)}
+                        placeholder="Avez-vous une question sur votre commande ou des instructions particulières ?"
+                        className="w-full p-4 bg-[#F9F9F8] border border-gray-200 rounded-none focus:ring-0 focus:border-black outline-none transition-colors text-black placeholder:text-gray-300 min-h-[100px] text-sm resize-none"
+                      />
                     </div>
 
                     <div className="pt-8 flex justify-end">
