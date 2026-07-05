@@ -111,7 +111,7 @@ export function ImageUploader({ label, value, onChange, folder = 'categories', c
       const readerData = new FileReader();
       readerData.readAsDataURL(webpBlob);
       readerData.onloadend = () => {
-        const base64data = readerData.result;
+        const base64data = readerData.result as string;
         console.log('Image compression to Base64 successful.');
         console.groupEnd();
         setProgress(100);

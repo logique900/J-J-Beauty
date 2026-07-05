@@ -117,7 +117,17 @@ export function FilterSidebar({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-8">
+        <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+          <div className="hidden lg:flex items-center justify-between pb-4 border-b border-brand-200">
+            <h2 className="font-serif font-bold text-xl text-brand-950">Filtres</h2>
+            <button 
+              type="button" 
+              onClick={() => setFilters({ priceMin: 0, priceMax: 1000, brands: [], sizes: [], colors: [], collections: [], inStock: false, onSale: false, minRating: 0 })}
+              className="text-sm font-semibold text-brand-600 hover:text-brand-950 transition-colors underline underline-offset-4"
+            >
+              Effacer tout
+            </button>
+          </div>
           
           {/* Quick switches */}
           <div className="space-y-4">
@@ -142,42 +152,36 @@ export function FilterSidebar({
 
           {/* Price Range */}
           <Accordion title="Prix" defaultOpen={true}>
-            <div className="flex items-end gap-1 h-12 mb-2">
+            <div className="flex items-end gap-1 h-12 mb-2"> 
                {histogramBars.map((val, i) => (
-                 <div key={i} className="flex-1 bg-gray-200 dark:bg-brand-200 rounded-t-sm" style={{ height: `${(val / maxBar) * 100}%` }}></div>
+                 <div key={i} className="flex-1 bg-brand-200 dark:bg-brand-200 rounded-t-sm" style={{ height: `${(val / maxBar) * 100}%` }}></div>
                ))}
             </div>
-
             <div className="flex items-center gap-4">
-              <div className="flex-1 relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-brand-600 text-[10px] font-bold">DT</span>
+              <div className="flex-1 relative group">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-400 group-focus-within:text-brand-900 transition-colors text-[10px] font-bold">Min</span>
                 <input 
                   type="number" 
                   min="0"
-                  value={filters.priceMin}
+                  value={filters.priceMin || ''}
+                  placeholder="0"
                   onChange={(e) => setFilters(prev => ({ ...prev, priceMin: Number(e.target.value) }))}
-                  className="w-full pl-8 pr-3 py-2 bg-transparent border border-gray-200 dark:border-brand-300 text-black dark:text-brand-900 rounded-lg text-sm focus:ring-black dark:focus:ring-brand-900 focus:border-black dark:focus:border-brand-900 transition-colors"
+                  className="w-full pl-9 pr-3 py-2.5 bg-white border border-brand-200 text-brand-900 rounded-xl text-sm focus:ring-2 focus:ring-brand-900 focus:border-brand-900 transition-all outline-none"
                 />
               </div>
-              <span className="text-gray-400 dark:text-brand-600">-</span>
-              <div className="flex-1 relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-brand-600 text-[10px] font-bold">DT</span>
+              <div className="w-4 h-px bg-brand-300 rounded-full" />
+              <div className="flex-1 relative group">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-400 group-focus-within:text-brand-900 transition-colors text-[10px] font-bold">Max</span>
                 <input 
                   type="number" 
                   min="0"
-                  value={filters.priceMax}
+                  value={filters.priceMax || ''}
+                  placeholder="1000"
                   onChange={(e) => setFilters(prev => ({ ...prev, priceMax: Number(e.target.value) }))}
-                  className="w-full pl-8 pr-3 py-2 bg-transparent border border-gray-200 dark:border-brand-300 text-black dark:text-brand-900 rounded-lg text-sm focus:ring-black dark:focus:ring-brand-900 focus:border-black dark:focus:border-brand-900 transition-colors"
+                  className="w-full pl-9 pr-3 py-2.5 bg-white border border-brand-200 text-brand-900 rounded-xl text-sm focus:ring-2 focus:ring-brand-900 focus:border-brand-900 transition-all outline-none"
                 />
               </div>
             </div>
-            <input 
-               type="range" 
-               min="0" max="500" 
-               value={filters.priceMax} 
-               onChange={(e) => setFilters(prev => ({ ...prev, priceMax: Number(e.target.value) }))}
-               className="w-full mt-4 accent-black dark:accent-brand-900"
-            />
           </Accordion>
 
           {/* Brands */}
@@ -185,6 +189,12 @@ export function FilterSidebar({
             <div className="space-y-3">
               {(allBrands.length > 0 ? allBrands : mockBrands).map(brand => (
                 <label key={brand.id} className="flex items-center group cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    className="hidden" 
+                    checked={filters.brands.includes(brand.name)}
+                    onChange={() => handleBrandToggle(brand.name)}
+                  />
                   <div className={`w-5 h-5 rounded flex items-center justify-center mr-3 transition-colors ${
                     filters.brands.includes(brand.name) ? 'bg-black dark:bg-brand-900 text-white' : 'border border-gray-300 dark:border-brand-300 group-hover:border-black dark:group-hover:border-brand-900'
                   }`}>
@@ -195,7 +205,6 @@ export function FilterSidebar({
               ))}
             </div>
           </Accordion>
-
           {/* Collections / Subcategories */}
           {allCategories.length > 0 && (
             <Accordion title="Collections" defaultOpen={true}>
@@ -206,6 +215,12 @@ export function FilterSidebar({
                     <div className="space-y-2 pl-2">
                       {cat.collections?.map((col: any) => (
                         <label key={col.id} className="flex items-center group cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="hidden"
+                            checked={filters.collections.includes(col.id)}
+                            onChange={() => handleCollectionToggle(col.id)}
+                          />
                            <div className={`w-4 h-4 rounded flex items-center justify-center mr-3 transition-colors ${
                             filters.collections.includes(col.id) ? 'bg-brand-900 text-brand-50' : 'border border-brand-300 group-hover:border-brand-900'
                           }`}>
@@ -220,7 +235,6 @@ export function FilterSidebar({
               </div>
             </Accordion>
           )}
-
           {/* Sizes */}
           <Accordion title="Tailles" defaultOpen={true}>
             <div className="flex flex-wrap gap-2">
@@ -239,7 +253,6 @@ export function FilterSidebar({
               ))}
             </div>
           </Accordion>
-
           {/* Colors */}
           <Accordion title="Couleurs" defaultOpen={true}>
             <div className="flex flex-wrap gap-3">
@@ -264,7 +277,6 @@ export function FilterSidebar({
               ))}
             </div>
           </Accordion>
-
           {/* Minimum Rating */}
           <Accordion title="Note minimale" defaultOpen={true}>
             <div className="space-y-2">
@@ -284,8 +296,8 @@ export function FilterSidebar({
                   </div>
                   <span className="ml-2 text-sm text-brand-800">& plus</span>
                 </label>
-              ))}
-               <label className="flex items-center group cursor-pointer mt-2">
+              ))} 
+              <label className="flex items-center group cursor-pointer mt-2">
                   <input 
                     type="radio" 
                     name="rating" 
@@ -297,14 +309,12 @@ export function FilterSidebar({
                 </label>
             </div>
           </Accordion>
-
         </div>
-
         {/* Footer actions (mobile only) */}
         <div className="lg:hidden shrink-0 w-full p-4 bg-brand-50 border-t border-brand-200 flex gap-3 transition-colors mt-auto">
           <button 
             type="button" 
-            onClick={() => setFilters({ priceMin: 0, priceMax: 1000, brands: [], sizes: [], colors: [], collections: [], inStock: false, onSale: false, minRating: 0 })}
+            onClick={() => setFilters({ priceMin: 0, priceMax: 1000, brands: [], sizes: [], collections: [], colors: [], inStock: false, onSale: false, minRating: 0 })}
             className="px-4 py-3 text-sm font-semibold text-brand-800 bg-brand-100 rounded-xl w-1/3 transition-colors"
           >
             Effacer

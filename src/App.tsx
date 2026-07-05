@@ -240,7 +240,7 @@ export default function App() {
       if (filters.onSale && (!p.originalPrice || p.price >= p.originalPrice)) return false;
       if (filters.minRating > 0 && p.rating < filters.minRating) return false;
       if (filters.priceMin > 0 && p.price < filters.priceMin) return false;
-      if (filters.priceMax < 1000 && p.price > filters.priceMax) return false;
+      if (filters.priceMax > 0 && p.price > filters.priceMax) return false;
       if (filters.brands.length > 0 && (!p.brand || !filters.brands.includes(p.brand))) return false;
       if (filters.sizes.length > 0 && !(p.sizes?.some(s => filters.sizes.includes(s)))) return false;
       if (filters.colors.length > 0 && !(p.colors?.some(c => filters.colors.includes(c.name)))) return false;
