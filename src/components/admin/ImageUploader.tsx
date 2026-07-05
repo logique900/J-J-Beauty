@@ -108,35 +108,22 @@ export function ImageUploader({ label, value, onChange, folder = 'categories', c
 
       const webpBlob = await compressToWebP(file);
       
-      const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.webp`;
-      const storageRef = ref(storage, fileName);
-
-      const uploadTask = uploadBytesResumable(storageRef, webpBlob, {
-        contentType: 'image/webp',
-      });
-
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const progressValue = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setProgress(progressValue);
-        },
-        (error) => {
-          console.error("Storage Upload Error:", error);
-          setError(`Erreur lors du téléchargement: ${error.message}`);
-          setUploading(false);
-          console.groupEnd();
-        },
-        async () => {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          console.log('Image upload successful. URL:', downloadURL);
-          console.groupEnd();
-          
-          onChange(downloadURL);
-          setUploading(false);
-          setProgress(100);
-        }
-      );
+      const readerData = new FileReader();
+      readerData.readAsDataURL(webpBlob);
+      readerData.onloadend = () => {
+        const base64data = readerData.result;
+        console.log('Image compression to Base64 successful.');
+        console.groupEnd();
+        setProgress(100);
+        onChange(base64data);
+        setUploading(false);
+      };
+      
+      readerData.onerror = () => {
+        setError("Erreur lors de l'encodage de l'image.");
+        setUploading(false);
+        console.groupEnd();
+      };
 
     } catch (err: any) {
       console.error("Local Image Compressor Error:", err);
