@@ -28,7 +28,7 @@ export function ProductCard({ product, viewMode, onQuickView }: ProductCardProps
       {/* Image Container */}
       <div 
         className={`relative overflow-hidden shrink-0 bg-[#F5F5F3] dark:bg-brand-100 dark:brightness-95 rounded-lg ${
-          isList ? 'w-48 sm:w-64 h-full aspect-[3/4]' : 'w-full aspect-[3/4]'
+          isList ? 'w-48 sm:w-64 h-full aspect-[3/4]' : 'w-full aspect-square sm:aspect-[3/4]'
         }`}
       >
         <img
@@ -95,7 +95,7 @@ export function ProductCard({ product, viewMode, onQuickView }: ProductCardProps
           )}
         </div>
 
-        <h3 className="text-[15px] font-serif font-medium text-black dark:text-brand-900 mb-1 leading-snug line-clamp-2">
+        <h3 className="text-xs sm:text-[15px] font-serif font-medium text-black dark:text-brand-900 mb-1 leading-snug line-clamp-2">
           {product.name}
         </h3>
         
@@ -107,7 +107,7 @@ export function ProductCard({ product, viewMode, onQuickView }: ProductCardProps
 
         <div className="mt-auto pt-4 flex flex-col gap-3">
           <div className="flex items-baseline gap-2">
-            <span className="text-sm font-semibold tracking-wide text-black dark:text-brand-900">
+            <span className="text-xs sm:text-sm font-semibold tracking-wide text-black dark:text-brand-900">
               {product.price.toFixed(2)} DT
             </span>
             {product.originalPrice && (
@@ -120,7 +120,7 @@ export function ProductCard({ product, viewMode, onQuickView }: ProductCardProps
           <button
             disabled={product.stock === 0}
             onClick={(e) => { e.stopPropagation(); addToCart(product, 1); }}
-            className={`relative z-20 flex w-full items-center justify-center gap-2 px-4 py-2 bg-transparent border border-gray-200 dark:border-brand-300 rounded-lg text-black dark:text-brand-900 text-[10px] font-bold uppercase tracking-[0.1em] hover:border-black dark:hover:border-brand-900 hover:bg-black dark:hover:bg-brand-900 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300`}
+            className={`relative z-20 flex w-full items-center justify-center gap-2 px-4 py-2 bg-transparent border border-gray-200 dark:border-brand-300 rounded-lg text-black dark:text-brand-900 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.1em] hover:border-black dark:hover:border-brand-900 hover:bg-black dark:hover:bg-brand-900 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300`}
           >
              <ShoppingBag className="w-3.5 h-3.5" />
              Ajouter au panier

@@ -26,10 +26,10 @@ export function CategoryHeader({ category, selectedCollectionIds, onToggleCollec
         )}
         
         {hasCollections && (
-          <div className="flex flex-wrap items-center justify-center gap-3">
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
             <button 
               onClick={onClearCollections}
-              className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all shadow-sm ${selectedCollectionIds.length === 0 ? 'bg-brand-900 text-white border border-brand-900' : (category.coverImage ? 'bg-white/10 text-white border border-white/20 hover:border-white' : 'bg-white text-brand-700 border border-brand-200 hover:border-brand-900')}`}
+              className={`px-5 py-2.5 rounded-full text-xs sm:text-xs sm:text-sm font-semibold transition-all shadow-sm ${selectedCollectionIds.length === 0 ? 'bg-brand-900 text-white border border-brand-900' : (category.coverImage ? 'bg-white/10 text-white border border-white/20 hover:border-white' : 'bg-white text-brand-700 border border-brand-200 hover:border-brand-900')}`}
             >
               Toutes les collections
             </button>

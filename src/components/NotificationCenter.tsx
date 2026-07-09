@@ -62,11 +62,11 @@ export function NotificationCenter() {
     <div className="relative" ref={dropdownRef}>
       <button 
         onClick={handleToggle}
-        className="relative p-1 text-brand-600 dark:text-brand-700 hover:text-brand-900 dark:hover:text-brand-800 transition"
+        className="relative p-1 text-[#5A312F] dark:text-brand-800 hover:opacity-70 transition"
       >
-        <Bell className="w-5 h-5" />
+        <Bell strokeWidth={1.5} className="w-[22px] h-[22px]" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 bg-accent-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-brand-50 dark:border-brand-100 shadow-sm">
+          <span className="absolute -top-1.5 -right-1.5 w-[18px] h-[18px] bg-[#5B3331] text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-[#fcf9f9] dark:border-brand-100">
             {unreadCount}
           </span>
         )}

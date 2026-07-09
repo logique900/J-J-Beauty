@@ -298,11 +298,11 @@ export default function App() {
 
   const currentGridClass = () => {
     switch (viewMode) {
-      case 'grid-2': return 'grid-cols-1 sm:grid-cols-2';
-      case 'grid-3': return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
-      case 'grid-4': return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4';
+      case 'grid-2': return 'grid-cols-2';
+      case 'grid-3': return 'grid-cols-2 lg:grid-cols-3';
+      case 'grid-4': return 'grid-cols-2 md:grid-cols-3 xl:grid-cols-4';
       case 'list': return 'grid-cols-1';
-      default: return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4';
+      default: return 'grid-cols-2 md:grid-cols-3 xl:grid-cols-4';
     }
   };
 
@@ -455,8 +455,8 @@ export default function App() {
                     </div>
 
                   <div className="flex-1 w-full min-w-0">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-6 border-b border-gray-100 dark:border-brand-200 mb-8 gap-4 transition-colors">
-                      <div className="flex items-center gap-4">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-4 sm:py-6 border-b border-gray-100 dark:border-brand-200 mb-6 sm:mb-8 gap-4 sm:gap-4 transition-colors">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full md:w-auto">
                         <button onClick={() => setIsFilterOpen(true)} className="lg:hidden flex items-center gap-2 px-6 py-2 border border-gray-200 dark:border-brand-300 rounded-full text-xs font-bold uppercase tracking-[0.1em] hover:border-black dark:hover:border-brand-900 transition-colors">
                           <SlidersHorizontal className="w-4 h-4" /> Filtres {activeFiltersCount > 0 && <span className="bg-black dark:bg-brand-900 text-white px-2 py-0.5 rounded-full ml-1">{activeFiltersCount}</span>}
                         </button>
@@ -474,7 +474,7 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between w-full sm:w-auto gap-8 text-xs font-bold uppercase tracking-[0.1em] text-gray-500 dark:text-brand-600">
+                      <div className="flex items-center justify-between w-full md:w-auto gap-4 sm:gap-8 text-xs font-bold uppercase tracking-[0.1em] text-gray-500 dark:text-brand-600">
                         <span>{totalProducts} produits</span>
                         <div className="hidden md:flex items-center bg-gray-50 dark:bg-brand-100 rounded-full p-1 border border-gray-100 dark:border-brand-200 transition-colors">
                           <button onClick={() => setViewMode('grid-2')} className={`p-2 rounded-full transition-colors ${viewMode === 'grid-2' ? 'bg-white dark:bg-brand-50 shadow-sm text-black dark:text-brand-900' : 'text-gray-400 dark:text-brand-600 hover:text-black dark:hover:text-brand-900'}`}><Grid2X2 className="w-4 h-4" /></button>
@@ -524,7 +524,7 @@ export default function App() {
                     {!isDbLoaded ? (
                       <div className="flex flex-col items-center justify-center py-20 text-center"><h3 className="text-xl font-bold text-gray-500 dark:text-brand-600">Chargement des produits...</h3></div>
                     ) : visibleProductsList.length > 0 ? (
-                      <motion.div layout className={`grid gap-6 md:gap-8 ${currentGridClass()}`}>
+                      <motion.div layout className={`grid gap-3 sm:gap-6 md:gap-8 ${currentGridClass()}`}>
                         <AnimatePresence>
                           {visibleProductsList.map(product => (
                             <motion.div 

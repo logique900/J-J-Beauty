@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, ShoppingBag, User, Heart, Menu, ChevronRight, Sun, Moon } from 'lucide-react';
+import { Search, ShoppingBag, User, Heart, Menu, ChevronRight, Sun, Moon, Shield } from 'lucide-react';
 import { mockCategories, mockCollections, mockBrands } from '../data/navigation';
 import { Category } from '../types';
 import { useCart } from '../context/CartContext';
@@ -42,7 +42,7 @@ export function Header({
     <header className="sticky top-0 z-50 bg-white dark:bg-brand-50 border-b border-brand-200 dark:border-brand-300 shadow-sm text-brand-900 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Top Row: Logo, Search, Icons */}
-        <div className="h-20 flex items-center justify-between gap-8">
+        <div className="h-16 sm:h-20 flex items-center justify-between gap-3 sm:gap-8">
           {/* Mobile Menu Button */}
           <button 
             className="lg:hidden p-2 -ml-2 text-brand-600 dark:text-brand-700 hover:text-brand-900 dark:hover:text-brand-800 transition-colors"
@@ -53,70 +53,72 @@ export function Header({
   
           {/* Logo */}
           <div 
-            className="text-3xl font-serif font-bold tracking-tight text-brand-900 dark:text-brand-900 cursor-pointer flex-shrink-0" 
+            className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-brand-900 dark:text-brand-900 cursor-pointer flex-shrink-0" 
             onClick={onNavigateHome}
           >
             J&J Beauty
           </div>
 
-          {/* Desktop Search Bar (Optional but common in this layout) */}
-          <div className="hidden lg:flex flex-1 max-w-2xl relative">
-            <input 
-              type="text" 
-              placeholder="Rechercher un produit, une marque..." 
-              className="w-full h-11 pl-12 pr-4 rounded-xl border border-brand-200 dark:border-brand-300 bg-brand-50 dark:bg-brand-100 outline-none focus:ring-2 focus:ring-brand-900/10 focus:border-brand-900 transition-all text-sm"
-              onFocus={onOpenSearch}
-              readOnly
-            />
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-400" />
+          {/* Desktop Search Bar */}
+          <div className="hidden lg:flex flex-1 max-w-[600px] mx-12 relative group">
+            <button 
+              type="button"
+              onClick={onOpenSearch}
+              className="w-full h-[46px] pl-[50px] pr-4 rounded-xl border border-brand-200 bg-[#fcf8f8] hover:bg-white dark:bg-brand-100 dark:border-brand-300 dark:hover:bg-brand-200 outline-none transition-all cursor-pointer flex items-center justify-between text-left shadow-sm hover:shadow-md"
+              style={{ borderRadius: '24px', borderColor: '#ecd9d9' }}
+            >
+              <span className="text-[15px] text-[#A48987] font-sans font-light">Rechercher un produit, une marque...</span>
+            </button>
+            <Search strokeWidth={1.5} className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#BA8F8D] transition-colors" />
           </div>
   
           {/* Right Icons */}
-          <div className="flex items-center gap-3 sm:gap-5">
-            <button onClick={toggleDarkMode} className="p-2 text-brand-600 dark:text-brand-700 hover:text-brand-900 dark:hover:text-brand-800 transition" title="Changer le thème">
-              {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          <div className="flex items-center gap-2 sm:gap-4 md:gap-6 ml-auto">
+            <button onClick={toggleDarkMode} className="text-[#5A312F] dark:text-brand-800 hover:opacity-70 transition p-1" title="Changer le thème">
+              {darkMode ? <Sun strokeWidth={1.5} className="w-[22px] h-[22px]" /> : <Moon strokeWidth={1.5} className="w-[22px] h-[22px]" />}
             </button>
 
-            <button onClick={onOpenSearch} className="lg:hidden p-2 text-brand-600 dark:text-brand-700 hover:text-brand-900 dark:hover:text-brand-800 transition">
-              <Search className="w-5 h-5" />
+            <button onClick={onOpenSearch} className="lg:hidden text-[#5A312F] dark:text-brand-800 hover:opacity-70 transition p-1">
+              <Search strokeWidth={1.5} className="w-[22px] h-[22px]" />
             </button>
             
             {isAdmin && onNavigateToAdmin && (
               <button 
                 onClick={onNavigateToAdmin}
-                className="flex text-brand-900 dark:text-brand-900 transition items-center gap-2 bg-brand-100 dark:bg-brand-200 px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-bold font-sans uppercase tracking-widest border border-brand-200 dark:border-brand-300 shadow-sm hover:shadow-md"
+                className="group flex text-[#5A312F] dark:text-brand-900 transition-all items-center justify-center gap-2 bg-[#FCEEEF] dark:bg-brand-200 px-4 h-[36px] rounded-full text-[11px] font-bold tracking-[0.15em] uppercase hover:bg-[#f3dfdf]"
                 title="Tableau de bord Admin"
               >
-                <div className="hidden xs:inline">Admin</div>
-                <div className="xs:hidden">A</div>
-                <div className="w-1.5 h-1.5 bg-accent-500 rounded-full animate-pulse" />
+                <Shield strokeWidth={1.5} className="w-[18px] h-[18px]" />
+                <span className="hidden sm:inline">Admin</span>
               </button>
             )}
 
+            <div className="text-[#5A312F] flex items-center">
+              <NotificationCenter />
+            </div>
+
+            <button className="hidden sm:block text-[#5A312F] dark:text-brand-800 hover:opacity-70 transition p-1">
+              <Heart strokeWidth={1.5} className="w-[22px] h-[22px]" />
+            </button>
+            <button onClick={openCart} className="text-[#5A312F] dark:text-brand-800 hover:opacity-70 transition relative p-1">
+              <ShoppingBag strokeWidth={1.5} className="w-[22px] h-[22px]" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-[18px] h-[18px] bg-[#5B3331] text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-[#fcf9f9] dark:border-brand-100">
+                  {cartCount}
+                </span>
+              )}
+            </button>
+
             <button 
               onClick={() => user ? onNavigateToAccount?.() : openAuthModal()} 
-              className="flex items-center gap-2 text-brand-600 dark:text-brand-700 hover:text-brand-900 dark:hover:text-brand-800 transition p-1"
+              className="flex items-center justify-center transition sm:ml-2"
             >
               {user ? (
-                <div className="w-8 h-8 bg-brand-900 text-white rounded-full flex items-center justify-center text-xs font-bold ring-2 ring-brand-100 dark:ring-brand-200">
+                <div className="w-[38px] h-[38px] bg-[#5B3331] text-[#fcf9f9] rounded-full flex items-center justify-center text-[15px] font-bold">
                   {user.name.charAt(0).toUpperCase()}
                 </div>
               ) : (
-                <User className="w-5 h-5" />
-              )}
-            </button>
-            
-            <NotificationCenter />
-
-            <button className="hidden md:block text-brand-600 dark:text-brand-700 hover:text-brand-900 dark:hover:text-brand-800 transition p-1">
-              <Heart className="w-5 h-5" />
-            </button>
-            <button onClick={openCart} className="text-brand-600 dark:text-brand-700 hover:text-brand-900 dark:hover:text-brand-800 transition relative p-1">
-              <ShoppingBag className="w-5 h-5" />
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-accent-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-brand-50 dark:border-brand-100 shadow-sm">
-                  {cartCount}
-                </span>
+                <User strokeWidth={1.5} className="w-[22px] h-[22px] text-[#5A312F]" />
               )}
             </button>
           </div>
@@ -128,13 +130,13 @@ export function Header({
             <div key={category.id} className="h-full group flex items-center relative">
               <button 
                 onClick={() => onNavigateToCategory(category.id)}
-                className="text-[11px] font-bold uppercase tracking-[0.15em] text-gray-600 hover:text-black whitespace-nowrap transition-colors py-4 flex items-center gap-1"
+                className="text-[11px] font-bold uppercase tracking-[0.15em] text-brand-800 dark:text-brand-700 hover:text-brand-950 dark:hover:text-brand-900 whitespace-nowrap transition-colors py-4 flex items-center gap-1"
               >
                 {category.name}
               </button>
               
               {/* Animated bottom border on hover */}
-              <div className="absolute bottom-0 left-0 w-full h-[2px] bg-black scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+              <div className="absolute bottom-0 left-0 w-full h-[2px] bg-brand-900 dark:bg-brand-900 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
 
               {/* Mega Menu Dropdown */}
               <div className="fixed top-[136px] left-0 w-full bg-white border-t border-gray-100 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-in-out pointer-events-none group-hover:pointer-events-auto z-50">
@@ -233,10 +235,12 @@ export function Header({
           ))}
 
           {/* Brands Tab */}
-          <div className="h-full group flex items-center">
-            <button className="text-[15px] font-medium text-blue-600 dark:text-blue-500 hover:text-blue-800 dark:hover:text-blue-400 whitespace-nowrap transition-colors py-2 flex items-center gap-1 group-hover:underline">
+          <div className="h-full group flex items-center relative">
+            <button className="text-[11px] font-bold uppercase tracking-[0.15em] text-brand-800 dark:text-brand-700 hover:text-brand-950 dark:hover:text-brand-900 whitespace-nowrap transition-colors py-4 flex items-center gap-1">
               Marques
             </button>
+            {/* Animated bottom border on hover */}
+            <div className="absolute bottom-0 left-0 w-full h-[2px] bg-brand-900 dark:bg-brand-900 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
             <div className="fixed top-32 left-0 w-full bg-white dark:bg-brand-100 border-t border-brand-200 dark:border-brand-300 shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ease-in-out pointer-events-none group-hover:pointer-events-auto z-50">
               <div className="max-w-7xl mx-auto px-8 py-10">
                 <div className="grid grid-cols-4 gap-8">
@@ -286,9 +290,9 @@ export function Header({
                     {isAdmin && (
                       <button 
                         onClick={() => { onNavigateToAdmin?.(); setMobileMenuOpen(false); }}
-                        className="py-3 bg-brand-900 text-white rounded-xl text-xs font-bold uppercase tracking-widest shadow-lg shadow-brand-900/20 active:scale-95 transition-all"
+                        className="py-3 bg-[#5A312F] text-white rounded-xl text-xs font-bold uppercase tracking-widest shadow-lg shadow-[#5A312F]/20 active:scale-95 transition-all flex items-center justify-center gap-2"
                       >
-                        Admin
+                        <Shield className="w-4 h-4" /> Admin
                       </button>
                     )}
                   </div>

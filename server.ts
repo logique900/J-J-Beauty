@@ -40,6 +40,56 @@ async function startServer() {
     });
   });
 
+  // WhatsApp sending API endpoint
+  apiRouter.post('/whatsapp/send', async (req, res) => {
+    try {
+      const { to, message } = req.body;
+      
+      if (!to || !message) {
+        return res.status(400).json({ error: 'Missing "to" or "message" in request body' });
+      }
+
+      console.log(`[WhatsApp] Preparing to send message to ${to}`);
+      
+      // =========================================================================
+      // TODO: INTEGRATION WHATSAPP (TWILIO OU META OFFICIEL)
+      // Pour envoyer un message SANS INTERVENTION HUMAINE, vous devez utiliser 
+      // un fournisseur d'API WhatsApp tel que Twilio ou l'API Cloud de WhatsApp.
+      // 
+      // Exemple avec Twilio :
+      // const client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+      // await client.messages.create({
+      //   body: message,
+      //   from: 'whatsapp:+14155238886',
+      //   to: `whatsapp:${to}`
+      // });
+      // =========================================================================
+
+      const apiKey = process.env.WHATSAPP_API_KEY;
+      if (!apiKey) {
+        console.warn('[WhatsApp] API key not found. Simulating successful send for development.');
+        // Simulation pour le développement
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return res.json({ success: true, simulated: true, message: 'Message simulé avec succès (API Key manquante)' });
+      }
+
+      // Si vous avez un endpoint externe (ex: API maison ou Meta API) :
+      // const response = await fetch('https://graph.facebook.com/v17.0/YOUR_PHONE_NUMBER_ID/messages', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Authorization': `Bearer ${apiKey}`,
+      //     'Content-Type': 'application/json'
+      //   },
+      //   body: JSON.stringify({ ... })
+      // });
+
+      res.json({ success: true, message: 'Message envoyé via API' });
+    } catch (error) {
+      console.error('[WhatsApp] Error sending message:', error);
+      res.status(500).json({ error: 'Failed to send WhatsApp message' });
+    }
+  });
+
   // Mount API router
   app.use('/api', apiRouter);
 

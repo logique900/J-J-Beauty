@@ -86,6 +86,31 @@ export function CheckoutPage({ onNavigateHome, onNavigateToCart }: CheckoutPageP
     }
   }, [user]);
 
+  useEffect(() => {
+    if (isSuccess && completedOrder && (completedOrder as any).whatsappEnabled) {
+      const msg = `*Nouvelle Commande J&J Beauty*\n\n*Numéro de commande:* #${completedOrder.id}\n*Client:* ${completedOrder.shippingAddress.firstName} ${completedOrder.shippingAddress.lastName}\n*Téléphone:* ${completedOrder.shippingAddress.phone || 'Non renseigné'}\n*Adresse:* ${completedOrder.shippingAddress.address1}, ${completedOrder.shippingAddress.zipCode} ${completedOrder.shippingAddress.city}\n\n*Produits:*\n${completedOrder.items.map((item: any) => `- ${item.quantity}x ${item.product.name} (${(item.product.price * item.quantity).toFixed(2)} DT)`).join('\n')}\n\n*Sous-total:* ${completedOrder.subtotal.toFixed(2)} DT\n*Livraison:* ${completedOrder.shippingCost === 0 ? 'Gratuite' : completedOrder.shippingCost.toFixed(2) + ' DT'}\n*Total:* ${completedOrder.total.toFixed(2)} DT${orderNotes ? `\n\n*Notes:*\n${orderNotes}` : ''}`;
+      
+      // Appel API en arrière-plan (sans window.open)
+      fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          to: (completedOrder as any).whatsappNumber, 
+          message: msg 
+        })
+      }).then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            toast.success("Commande transmise à l'administrateur (WhatsApp).");
+          } else {
+            console.error("Erreur WhatsApp API:", data);
+          }
+        }).catch(err => {
+           console.error("Erreur réseau WhatsApp:", err);
+        });
+    }
+  }, [isSuccess, completedOrder]);
+
   const handleNextStep = (next: CheckoutStep) => {
     setCurrentStep(next);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -355,18 +380,12 @@ export function CheckoutPage({ onNavigateHome, onNavigateToCart }: CheckoutPageP
            </div>
 
            {(completedOrder as any).whatsappEnabled && (
-            <div className="bg-[#25D366]/10 border border-[#25D366]/20 p-10 mb-12 max-w-2xl w-full text-center">
-               <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#075E54] mb-4">Confirmation via WhatsApp</h3>
-               <p className="text-sm font-serif italic text-[#128C7E] mb-8">Pour un traitement plus rapide, vous pouvez envoyer les détails de votre commande directement sur notre WhatsApp.</p>
-               <a 
-                 href={`https://wa.me/${(completedOrder as any).whatsappNumber}?text=${encodeURIComponent(`*Nouvelle Commande J&J Beauty*\n\n*Numéro de commande:* #${completedOrder.id}\n*Client:* ${completedOrder.shippingAddress.firstName} ${completedOrder.shippingAddress.lastName}\n*Téléphone:* ${completedOrder.shippingAddress.phone || 'Non renseigné'}\n*Adresse:* ${completedOrder.shippingAddress.address1}, ${completedOrder.shippingAddress.zipCode} ${completedOrder.shippingAddress.city}\n\n*Produits:*\n${completedOrder.items.map((item: any) => `- ${item.quantity}x ${item.product.name} (${(item.product.price * item.quantity).toFixed(2)} DT)`).join('\n')}\n\n*Sous-total:* ${completedOrder.subtotal.toFixed(2)} DT\n*Livraison:* ${completedOrder.shippingCost === 0 ? 'Gratuite' : completedOrder.shippingCost.toFixed(2) + ' DT'}\n*Total:* ${completedOrder.total.toFixed(2)} DT${orderNotes ? `\n\n*Notes:*\n${orderNotes}` : ''}`)}`}
-                 target="_blank"
-                 rel="noopener noreferrer"
-                 className="inline-flex items-center justify-center gap-3 w-full sm:w-auto bg-[#25D366] text-white px-10 py-4 text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-[#128C7E] transition-colors"
-               >
-                 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                 Envoyer ma commande
-               </a>
+            <div className="bg-[#25D366]/10 border border-[#25D366]/20 p-8 mb-12 max-w-2xl w-full text-center flex flex-col items-center">
+               <div className="w-12 h-12 bg-[#25D366] rounded-full flex items-center justify-center mb-4">
+                 <Check className="w-6 h-6 text-white" />
+               </div>
+               <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#075E54] mb-2">Notification envoyée</h3>
+               <p className="text-sm font-serif italic text-[#128C7E]">Les détails de votre commande ont été automatiquement transmis à l'équipe J&J Beauty via WhatsApp. Nous reviendrons vers vous rapidement.</p>
             </div>
            )}
 

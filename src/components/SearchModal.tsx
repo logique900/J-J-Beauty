@@ -150,13 +150,13 @@ export function SearchModal({
           className="w-full h-full sm:h-auto sm:max-w-3xl bg-white sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
         >
           {/* Search Header */}
-          <form onSubmit={handleSearchSubmit} className="flex items-center px-4 sm:px-6 py-4 border-b border-gray-100 bg-white">
-            <Search className="w-6 h-6 text-gray-400 mr-3 shrink-0" />
+          <form onSubmit={handleSearchSubmit} className="flex items-center px-4 sm:px-6 py-5 border-b border-gray-200 bg-white sticky top-0 z-10 transition-shadow">
+            <Search className={`w-6 h-6 mr-4 shrink-0 transition-colors ${query ? 'text-black' : 'text-gray-400'}`} />
             <input
               ref={inputRef}
               type="text"
-              className="flex-1 text-lg sm:text-2xl font-light outline-none bg-transparent placeholder:text-gray-300"
-              placeholder="Que recherchez-vous ?"
+              className="flex-1 text-lg sm:text-2xl font-serif outline-none bg-transparent placeholder:text-gray-300 text-black placeholder:font-sans"
+              placeholder="Rechercher un soin, un parfum..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -200,17 +200,17 @@ export function SearchModal({
                 {history.length > 0 && (
                   <div>
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><Clock className="w-4 h-4"/> Recherches récentes</h3>
-                      <button onClick={() => setHistory([])} className="text-xs text-gray-500 hover:text-black underline">Tout effacer</button>
+                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2"><Clock className="w-3.5 h-3.5"/> Recherches récentes</h3>
+                      <button onClick={() => setHistory([])} className="text-[10px] font-bold uppercase tracking-[0.1em] text-gray-500 hover:text-black border-b border-transparent hover:border-black transition-colors">Effacer</button>
                     </div>
-                    <ul className="space-y-2">
+                    <ul className="space-y-1">
                       {history.map((item, idx) => (
                         <li key={idx} className="group flex items-center justify-between text-sm">
-                          <button onClick={() => setQuery(item)} className="text-gray-600 hover:text-black flex-1 text-left py-1 truncate">
+                          <button onClick={() => setQuery(item)} className="text-gray-600 hover:text-black flex-1 text-left py-2 truncate transition-colors font-medium">
                             {item}
                           </button>
-                          <button onClick={() => removeItem(item)} className="text-gray-300 hover:text-gray-600 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <X className="w-3 h-3" />
+                          <button onClick={() => removeItem(item)} className="text-gray-300 hover:text-red-500 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <X className="w-4 h-4" />
                           </button>
                         </li>
                       ))}
@@ -220,13 +220,13 @@ export function SearchModal({
 
                 {/* Tendances */}
                 <div>
-                   <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2 mb-4"><TrendingUp className="w-4 h-4"/> Tendances</h3>
+                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2 mb-4"><TrendingUp className="w-3.5 h-3.5"/> Tendances</h3>
                    <div className="flex flex-wrap gap-2">
                      {TRENDING_SEARCHES.map(t => (
                        <button
                          key={t}
                          onClick={() => setQuery(t)}
-                         className="px-3 py-1.5 bg-white border border-gray-200 rounded-full text-xs font-medium text-gray-600 hover:border-black hover:text-black transition-colors"
+                         className="px-4 py-2 bg-gray-50 border border-gray-100 rounded-full text-sm font-medium text-gray-700 hover:border-black hover:bg-black hover:text-white transition-all shadow-sm hover:shadow-md"
                        >
                          {t}
                        </button>
@@ -249,7 +249,7 @@ export function SearchModal({
                           <li key={c.id}>
                             <button 
                               onClick={() => { onClose(); onNavigateToCategory(c.id); }}
-                              className="w-full text-left text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center justify-between group py-1"
+                              className="w-full text-left text-sm font-medium text-gray-900 hover:text-black flex items-center justify-between group py-1 transition-colors"
                             >
                               <span>{c.name}</span>
                               <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -268,7 +268,7 @@ export function SearchModal({
                           <li key={b.id}>
                             <button 
                               onClick={() => { onClose(); onNavigateToBrand(b.id); }}
-                              className="w-full text-left text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center gap-3 py-1 group"
+                              className="w-full text-left text-sm font-medium text-gray-900 hover:text-black flex items-center gap-3 py-1 group transition-colors"
                             >
                               <div className="w-6 h-6 rounded-full overflow-hidden border border-gray-200"><img src={b.logo} className="w-full h-full object-cover"/></div>
                               <span>{b.name}</span>
@@ -286,20 +286,20 @@ export function SearchModal({
                   <div className="lg:col-span-2">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Produits correspondants</h3>
-                      <button className="text-xs font-medium text-blue-600 hover:underline">Voir tout</button>
+                      <button onClick={onClose} className="text-[10px] font-bold uppercase tracking-[0.1em] text-black border-b border-transparent hover:border-black transition-colors pb-0.5">Voir tout</button>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       {results.products.map(product => (
                         <div 
                           key={product.id}
                           onClick={() => { onClose(); onNavigateToProduct(product.id); }}
-                          className="group bg-white p-2 rounded-xl flex gap-3 hover:shadow-md border border-transparent hover:border-gray-100 transition-all cursor-pointer"
+                          className="group bg-white p-2 flex gap-3 hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-all cursor-pointer"
                         >
-                          <div className="w-16 h-20 sm:w-20 sm:h-24 bg-gray-100 rounded-lg overflow-hidden shrink-0">
-                            <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+                          <div className="w-16 h-20 sm:w-20 sm:h-24 bg-gray-100 overflow-hidden shrink-0">
+                            <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                           </div>
                           <div className="flex flex-col py-1">
-                            <h4 className="text-sm font-medium text-gray-900 line-clamp-2 leading-snug mb-1 group-hover:text-blue-600">{product.name}</h4>
+                            <h4 className="text-sm font-medium text-gray-900 line-clamp-2 leading-snug mb-1 group-hover:text-black">{product.name}</h4>
                             <div className="flex flex-wrap items-baseline gap-2 mt-auto">
                               <span className="text-sm font-bold">{product.price.toFixed(2)} DT</span>
                               {product.originalPrice && <span className="text-xs text-gray-400 line-through">{product.originalPrice.toFixed(2)} DT</span>}
@@ -315,19 +315,19 @@ export function SearchModal({
 
             {/* No Results */}
             {hasNoResults && (
-              <div className="flex flex-col items-center justify-center p-12 text-center h-full min-h-[300px]">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                  <Search className="w-6 h-6 text-gray-400" />
+              <div className="flex flex-col items-center justify-center p-12 text-center h-full min-h-[400px]">
+                <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6">
+                  <Search className="w-8 h-8 text-gray-300" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Aucun résultat trouvé</h3>
-                <p className="text-gray-500 mb-6 max-w-sm">
-                  Nous ne trouvons aucun article pour "<span className="font-medium text-gray-900">{query}</span>". 
-                  Assurez-vous qu'il n'y ait pas de faute de frappe.
+                <h3 className="text-xl font-serif text-black mb-3">Aucun résultat trouvé</h3>
+                <p className="text-gray-500 mb-8 max-w-md">
+                  Nous n'avons trouvé aucun article correspondant à "<span className="font-medium text-black">{query}</span>". 
+                  Vérifiez l'orthographe ou essayez un terme plus général.
                 </p>
                 <div className="w-full max-w-md bg-white border border-gray-200 rounded-xl p-4 text-left shadow-sm">
                   <p className="text-sm font-medium text-gray-900 mb-3">Essayez plutôt ces catégories :</p>
                   <div className="flex flex-wrap gap-2">
-                    {['Chaussures', 'Manteaux', 'Accessoires', 'Nouveautés'].map(cat => (
+                    {['Soins Visage', 'Maquillage', 'Parfums', 'Nouveautés'].map(cat => (
                       <button 
                         key={cat} 
                         onClick={() => setQuery(cat)}
@@ -346,9 +346,9 @@ export function SearchModal({
           <div className="sm:hidden border-t border-gray-100 p-4 bg-white flex justify-center">
             <button 
               onClick={handleVisualSearch}
-              className="flex items-center justify-center gap-2 w-full py-3 bg-gray-50 text-gray-700 rounded-xl font-medium"
+              className="flex items-center justify-center gap-3 w-full bg-black text-white px-6 py-4 text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-colors"
             >
-              <ImageIcon className="w-5 h-5" />
+              <ImageIcon className="w-4 h-4" />
               Recherche par photo
             </button>
           </div>

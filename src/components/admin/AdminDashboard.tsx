@@ -16,12 +16,10 @@ import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestor
 import { AdminProducts } from './AdminProducts';
 import { AdminOrders } from './AdminOrders';
 import { AdminCustomers } from './AdminCustomers';
-import { AdminAnalytics } from './AdminAnalytics';
 import { AdminCategories } from './AdminCategories';
 import { AdminBrands } from './AdminBrands';
 import { AdminSettings } from './AdminSettings';
 import { AdminHero } from './AdminHero';
-import { AdminMessages } from './AdminMessages';
 import { NotificationCenter } from '../NotificationCenter';
 import { subscribeToNotifications, AppNotification } from '../../services/notificationService';
 import { useAuth } from '../../context/AuthContext';
@@ -33,7 +31,7 @@ interface AdminDashboardProps {
   onBack: () => void;
 }
 
-type AdminTab = 'overview' | 'analytics' | 'orders' | 'customers' | 'products' | 'categories' | 'brands' | 'settings' | 'hero' | 'messages';
+type AdminTab = 'overview' | 'orders' | 'customers' | 'products' | 'categories' | 'brands' | 'settings' | 'hero';
 
 export function AdminDashboard({ onBack }: AdminDashboardProps) {
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -292,8 +290,6 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
     }
 
     switch (activeTab) {
-      case 'analytics':
-        return <AdminAnalytics />;
       case 'orders':
         return <AdminOrders />;
       case 'customers':
@@ -308,8 +304,6 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
         return <AdminSettings />;
       case 'hero':
         return <AdminHero />;
-      case 'messages':
-        return <AdminMessages />;
       case 'overview':
       default:
         return (
@@ -497,10 +491,8 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
 
   const menuItems = [
     { id: 'overview', label: 'Vue d\'ensemble', icon: LayoutDashboard },
-    { id: 'analytics', label: 'Analytiques', icon: PieChartIcon },
     { id: 'orders', label: 'Commandes', icon: ShoppingCart },
     { id: 'customers', label: 'Clients', icon: Users2 },
-    { id: 'messages', label: 'Questions', icon: MessageSquare },
     { id: 'products', label: 'Produits', icon: ShoppingBag },
     { id: 'categories', label: 'Catégories', icon: LayoutDashboard },
     { id: 'brands', label: 'Marques', icon: Globe },
