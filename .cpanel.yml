@@ -1,8 +1,7 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/jjbeauty/jjbeauty_app/
-    - /bin/cp -R * $DEPLOYPATH
-    - /bin/cp -R .[!.]* $DEPLOYPATH 2>/dev/null || true
-    - cd $DEPLOYPATH && /usr/local/bin/npm install --production=false
-    - cd $DEPLOYPATH && /usr/local/bin/npm run build
+    - /bin/cp -R * /home/jjbeauty/jjbeauty_app/
+    - /bin/cp -R .[!.]* /home/jjbeauty/jjbeauty_app/ 2>/dev/null || true
+    - cd /home/jjbeauty/jjbeauty_app/ && /usr/local/bin/npm install --production=false
+    - cd /home/jjbeauty/jjbeauty_app/ && /usr/local/bin/npm run build
