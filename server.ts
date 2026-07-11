@@ -1,5 +1,4 @@
 import express from 'express';
-import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -8,7 +7,7 @@ const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT || 3000;
 
   // Middleware to parse JSON
   app.use(express.json());
@@ -19,7 +18,8 @@ async function startServer() {
     next();
   });
 
-  const distPath = process.env.NODE_ENV === 'production' 
+  const isProd = process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'Production';
+  const distPath = isProd 
     ? path.resolve(__dirname) 
     : path.join(process.cwd(), 'dist');
     
@@ -84,6 +84,7 @@ async function startServer() {
       // });
 
       res.json({ success: true, message: 'Message envoyé via API' });
+
     } catch (error) {
       console.error('[WhatsApp] Error sending message:', error);
       res.status(500).json({ error: 'Failed to send WhatsApp message' });
@@ -94,7 +95,8 @@ async function startServer() {
   app.use('/api', apiRouter);
 
   // --- VITE MIDDLEWARE ---
-  if (process.env.NODE_ENV !== 'production') {
+  if (!isProd) {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
@@ -127,9 +129,15 @@ async function startServer() {
     });
   });
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`);
-  });
+  if (isProd) {
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } else {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running on http://0.0.0.0:${PORT}`);
+    });
+  }
 }
 
 startServer();
